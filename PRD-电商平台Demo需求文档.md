@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 | :--- | :--- |
 | 文档名称 | 轻购电商平台 Demo（C 端）产品需求文档 |
-| 文档版本 | v1.1 |
+| 文档版本 | v1.3 |
 | 文档状态 | 评审稿 |
 | 编写日期 | 2026-08-18 |
 | 产品形态 | React Native 跨端 App（iOS / Android）+ NestJS 后端（Node.js）+ MySQL |
@@ -14,6 +14,8 @@
 | :--- | :--- | :--- |
 | v1.0 | 2026-08-18 | 初稿 |
 | v1.1 | 2026-08-18 | 参照 Fluent App PRD 组织结构重构：模块化功能描述、关键技术难点攻克、关键业务逻辑实现、商业模式与合规、交互与设计风格 |
+| v1.2 | 2026-08-18 | 埋点方案调整：取消自研 SDK，改用 Sentry（崩溃/页面性能监控）+ PostHog（业务埋点与分析）双平台方案 |
+| v1.3 | 2026-08-18 | 产品调整 + 安全加固：删除 Banner/金刚区/分类导航；首页布局改为搜索+排序+瀑布流；游客权限收紧（不可加购、搜索历史仅登录用户）；React Native Paper 组件库选型；安全加固（服务端计价防改价、库存条件更新防超卖、Token 复用宽容窗口、接口 IDOR 防护、登出吊销全部 Token）；待支付 1 分钟自动取消、支付后 10 分钟模拟完成、登出清空本地搜索历史 |
 
 ---
 
@@ -25,7 +27,7 @@
 
 1. **跨端开发能力**：RN + TypeScript 一套代码双端运行，沉淀可复用的跨端工程骨架；
 2. **安全登录与鉴权体系**：基于 Access Token + Refresh Token 的**双 Token 机制**，实现"无感刷新"的登录态管理；
-3. **轻量埋点方案**：自研 **KB 级零依赖埋点 SDK**，实现"不侵入业务、不影响性能、弱网不丢数"的行为数据采集。
+3. **数据监控与埋点体系**：**Sentry** 负责崩溃与页面性能监控，**PostHog** 负责业务行为数据采集与分析，均使用官方 RN SDK 零成本接入。
 
 后端采用 **NestJS（Node.js）+ MySQL** 搭建标准化服务骨架，作为后续真实项目的基础。
 
@@ -40,9 +42,9 @@
 
 ### 2.2 核心价值主张
 
-1. **完整电商闭环**：覆盖"逛 → 搜 → 买"核心链路——首页/分类/搜索/列表/详情 → 加购 → 下单 → 支付（Mock）→ 订单管理，业务价值完整、演示性强。
+1. **完整电商闭环**：覆盖"逛 → 搜 → 买"核心链路——首页/搜索/列表/详情 → 加购 → 下单 → 支付（Mock）→ 订单管理，业务价值完整、演示性强。
 2. **安全且无感的登录体系**：Access Token（2 小时）+ Refresh Token（30 天）双 Token 组合，配合**单飞刷新**与 **Token 旋转**，实现"Access 过期自动续期、用户全程无感知"，同时保证凭证可吊销、防重放、防盗用。
-3. **极轻量埋点方案**：零依赖、KB 级体积、单次调用 < 1ms 的埋点 SDK；攒批上报 + 离线补报保证弱网不丢数；全站核心行为可采、可查，为数据分析与产品迭代提供数据基础。
+3. **开箱即用的数据体系**：Sentry（崩溃 + 页面性能监控）+ PostHog（业务埋点 + 漏斗留存 + 会话回放）双平台分工，均免费版零成本接入；官方 RN SDK 开箱即用，无需自研与运维，为数据驱动迭代提供完整基础。
 
 ---
 
@@ -55,10 +57,10 @@
 | 元素 | 描述 | 交互细节 |
 | :--- | :--- | :--- |
 | **注册页** | 手机号 + 密码（6-20 位）+ 二次确认 | 手机号格式/唯一性实时校验，校验通过才可提交 |
-| **登录页** | 手机号 + 密码 | 失败统一提示"手机号或密码错误"（不区分具体错误，防撞库）；登录成功后跳转来源页 |
-| **游客模式** | 未登录可浏览/搜索/加购 | 购物车数据存本地；结算、下单、地址、个人中心需登录，触发登录引导 |
+| **登录页** | 手机号 + 密码 | 底部必含"没有账号？去注册"入口跳转注册页；失败统一提示"手机号或密码错误"（不区分具体错误，防撞库）；登录成功后跳转来源页 |
+| **游客模式** | 未登录仅可浏览首页、搜索、筛选排序、查看商品详情 | 搜索不显示/不记录历史（仅登录用户可用）；购物车、加购、下单、订单、地址、个人中心均需登录，未登录访问时显示未登录提示，点击跳转登录页（登录页含"没有账号？去注册"） |
 | **自动登录** | App 启动时若本地存在有效 Refresh Token | 静默调刷新接口恢复登录态，用户直达已登录状态 |
-| **登出** | 设置页 / 个人中心入口 | 调服务端吊销 Refresh Token，并清除本地 Token 与用户态 |
+| **登出** | 设置页 / 个人中心入口 | 调服务端吊销**该用户全部** Refresh Token（防多设备泄漏），并清除本地 Token、用户态与本地搜索历史 |
 
 #### 3.1.2 双 Token 鉴权逻辑
 
@@ -68,7 +70,7 @@
 | **登录签发** | 登录/注册成功返回双 Token + 用户信息 | 手机号脱敏返回（138****0000）；Refresh Token 哈希落库 refresh_tokens 表 |
 | **无感刷新** | 业务接口返回 401（TOKEN_EXPIRED）时自动续期 | 拦截器捕获 → 调刷新接口 → 更新本地 Token → 重放原请求，用户全程无感知；每请求最多重放 1 次 |
 | **单飞（Single Flight）** | 多个请求同时 401 时仅发起一次刷新 | 其余请求挂起入队等待；刷新成功后统一重放；防止并发刷新导致多签 Token 竞态 |
-| **Token 旋转** | 每次刷新旧 Refresh Token 立即吊销并签发新串 | 旧串再次使用视为异常；可选做**复用检测**：发现已吊销串被复用 → 判定疑似盗用 → 吊销该用户全部 Token 强制重新登录 |
+| **Token 旋转** | 每次刷新旧 Refresh Token 立即吊销并签发新串 | 旧串再次使用视为异常；**复用检测**：发现已吊销串被复用 → 判定疑似盗用 → 吊销该用户全部 Token 强制重新登录；复用检测设**宽容窗口**（吊销后 60s 内复用视为网络重试，仅返回 40102 不触发全量吊销），避免刷新超时重试误伤正常用户 |
 | **刷新失败降级** | Refresh Token 失效/被吊销 | 清空本地登录态；当前在结算等敏感页则提示"登录已过期，请重新登录"并跳转登录页 |
 | **登出即吊销** | 登出必须调用服务端吊销接口 | 仅清本地不算登出（防 Token 泄漏后被继续使用） |
 
@@ -76,67 +78,79 @@
 
 | 功能点 | 描述 | 交互细节与逻辑 |
 | :--- | :--- | :--- |
-| **首页** | Banner 轮播 + 金刚区入口 + 推荐商品流 | Banner 3-5 张自动轮播可点击跳商品；推荐流双列瀑布流分页加载、下拉刷新；顶部常驻搜索入口 |
-| **分类** | 左右双栏分类页 | 左侧一级分类、右侧二级分类与商品缩略；点击跳转商品列表 |
-| **搜索** | 关键词搜索 + 搜索历史 | 历史存本地最近 10 条，可一键清除；结果按名称 LIKE 相关性分页展示，空结果给推荐兜底 |
-| **商品列表** | 筛选与排序 + 分页 | 排序：综合（销量+时间）/销量/价格升降；上拉加载更多，空态友好提示 |
-| **商品详情** | 图片轮播 + 价格/销量/库存 + 图文详情 | 支持加购（登录同步服务端，未登录存本地）与立即购买；商品卡片/详情进入视口自动上报曝光埋点 |
+| **首页布局** | 自上而下：搜索组件 → 排序组件 → 双列瀑布流商品列表 | 瀑布流分页加载、下拉刷新；商品卡片进入视口自动上报曝光埋点 |
+| **搜索组件与搜索页** | 首页顶部常驻搜索框，点击进入搜索页 | 搜索页含搜索框 + 搜索按钮 + 搜索历史；历史仅登录用户可见（本地存最近 10 条、可一键清除，登出清空），未登录不记录/不展示历史；结果按名称 LIKE 相关性分页展示（关键词转义 `%`/`_` 通配符），空结果给推荐兜底 |
+| **排序组件** | 排序选项从左到右平铺一排：综合 / 销量 / 上新 | "综合"点击弹出下拉框，选项：综合推荐、价格从高到低、价格从低到高；销量按销量排序、上新按上架时间排序；选中项高亮，切换后商品流重新加载 |
+| **商品列表** | 双列瀑布流，分页加载 | 上拉加载更多，空态友好提示 |
+| **商品详情** | 图片轮播 + 价格/销量/库存 + 图文详情 | 支持加购与立即购买（均需登录，未登录点击引导登录）；商品卡片/详情进入视口自动上报曝光埋点 |
 
 ### 3.3 交易模块
 
 | 功能点 | 描述 | 交互细节与逻辑 |
 | :--- | :--- | :--- |
-| **购物车** | 数量加减、删除、单选/全选、结算 | 失效商品置灰不可结算；游客购物车登录后自动合并（同商品数量叠加）；底部结算栏实时汇总勾选金额 |
+| **购物车** | 数量加减、删除、单选/全选、结算 | 需登录使用（未登录访问显示未登录提示并引导登录）；失效商品置灰不可结算；底部结算栏实时汇总勾选金额 |
 | **收货地址** | 增删改查、默认地址 | 下单时可选/新增地址；下单对地址做**快照**存订单，后续改地址不影响历史订单 |
-| **确认订单** | 地址 + 商品清单 + 金额合计 | 库存校验失败（40901）明确提示并禁止提交；提交成功后上报 create_order 实时埋点 |
+| **确认订单** | 地址 + 商品清单 + 金额合计 | 库存校验失败（40901）明确提示并禁止提交；提交成功后上报 create_order 埋点 |
 | **订单列表/详情** | 按状态 Tab 筛选 + 分页 | 全部/待支付/已支付/已完成/已取消；详情展示状态、商品快照、收件人快照、金额明细 |
-| **支付（Mock）** | 点击支付直接置为"已支付" | 模拟成功场景；支付成功上报 pay_success 实时埋点 |
-| **取消订单** | 仅待支付订单可取消 | 回滚库存；二次确认弹窗防误触 |
+| **支付（Mock）** | 点击支付直接置为"已支付" | 模拟成功场景；支付成功上报 pay_success 埋点；支付后 **10 分钟**由定时任务模拟"已完成" |
+| **取消订单** | 仅待支付订单可取消；**待支付超时 1 分钟自动取消** | 回滚库存；二次确认弹窗防误触；超时取消由服务端定时任务每分钟扫描触发 |
 
-### 3.4 轻量埋点 SDK（自研）★
+### 3.4 数据监控与埋点方案（Sentry + PostHog）★
 
-#### 3.4.1 SDK 功能设计
+> 方案说明：数据体系采用双平台分工——**Sentry** 负责崩溃与页面性能监控（技术侧数据），**PostHog** 负责业务埋点与分析（业务侧数据），均使用官方 RN SDK、数据直连平台云服务、不经过自研后端。两者均选**免费版**：Sentry Developer（5K 错误/月 + 1 万性能单位/月）、PostHog Cloud Free（100 万事件/月），Demo 规模零成本。若正式商用涉及数据出境合规，PostHog 可平滑迁移自托管（埋点代码仅需改 host 配置）。
+
+#### 3.4.1 Sentry：崩溃与页面性能监控
 
 | 功能点 | 描述 | 交互细节与逻辑 |
 | :--- | :--- | :--- |
-| **自动埋点** | 页面浏览 / 商品曝光 / App 启动与退后台 | 通过导航监听与曝光检测自动采集，**不侵入业务页面代码**；可在初始化参数中分别关闭 |
-| **手动埋点** | 点击与业务事件 | 业务侧仅调用 `Tracker.track(event, props)` 一个 API，同步返回、非阻塞 |
-| **公共参数** | 所有事件自动携带统一上下文 | app_id / sdk_version / platform / device_id / session_id / user_id（登录后）/ ts 等，业务无需关心 |
-| **攒批上报** | 事件先入内存队列，条件触发批量发送 | 队列 ≥ 20 条 / 距上次 ≥ 10s / App 退后台任一条件触发 flush；实时事件（下单/支付/登录）走独立通道立即上报 |
-| **失败重试** | 网络失败自动重试 | 1s → 2s → 4s 指数退避，最多 3 次 |
-| **离线补报** | 重试仍失败写入本地持久化队列 | AsyncStorage 存储，上限 100 条（超限丢最旧）；App 下次启动优先补报 |
-| **采样与裁剪** | 采样率可配、事件属性白名单校验 | 实时事件不受采样影响；防大对象误传导致包体膨胀 |
-| **隐私开关** | 设置页提供采集开关 | 关闭后 SDK 停止采集与上报；公共参数不含手机号/地址/Token 等敏感信息 |
+| **崩溃监控** | JS 异常 + Native 崩溃自动捕获 | 官方 @sentry/react-native 初始化几行代码自动埋桩；错误含堆栈、面包屑、设备上下文、release 版本 |
+| **页面性能** | 页面加载与交互性能追踪 | 自动采集性能事务（transactions/spans）；慢页面按阈值告警；与 release 关联定位性能回归 |
+| **用户关联** | 错误关联到具体用户 | 登录后 `Sentry.setUser({ id })`，登出清空；可按用户检索排查单用户问题 |
+| **用量控制** | 控制免费额度消耗 | 开发环境不上报；配置 tracesSampleRate 与忽略规则（如非致命错误过滤） |
 
-SDK 对外 API（对业务暴露的最小面）：
+#### 3.4.2 PostHog：业务埋点与分析
+
+| 功能点 | 描述 | 交互细节与逻辑 |
+| :--- | :--- | :--- |
+| **事件采集** | 业务行为事件上报 | 官方 posthog-react-native；`PostHog.capture(event, props)` 手动埋点，自动采集启动与页面浏览 |
+| **用户识别** | 匿名与登录态打通 | 登录后 `PostHog.identify(userId)`，历史匿名事件自动归并至用户；登出 `PostHog.reset()` |
+| **会话回放** | 可视化回放用户操作路径 | 开启 Session Replay；**输入框默认遮罩**（密码始终遮罩）、图片遮罩，满足隐私要求 |
+| **分析洞察** | 漏斗 / 留存 / 路径分析 | 基于事件配置转化漏斗（浏览 → 加购 → 下单 → 支付）；无需自建查询，免费版全量可用 |
+| **Feature Flag** | 功能开关与 A/B 实验 | 免费版含 100 万 flag 请求/月，为后续灰度发布预留能力 |
+
+SDK 初始化示例：
 
 ```ts
-Tracker.init({ appId, serverUrl, sampleRate, batchSize, flushInterval, autoTrack, debug });
-Tracker.setUserId(userId);              // 登录/登出时设置（登出传 null）
-Tracker.track('add_to_cart', { ... });  // 手动埋点
-Tracker.trackExposure('recommend', [...]); // 手动曝光
-Tracker.flush();                        // 立即上报（支付成功等关键点）
-Tracker.disable();                      // 用户关闭采集开关后停止上报
+// Sentry：崩溃 + 页面性能
+Sentry.init({ dsn: '...', tracesSampleRate: 1.0, environment: __DEV__ ? 'development' : 'production' });
+
+// PostHog：业务埋点 + 会话回放
+<PostHogProvider apiKey="..." options={{
+  host: 'https://us.i.posthog.com',
+  enableSessionReplay: true,          // 输入框/图片默认遮罩
+}}>
+// 业务埋点
+PostHog.capture('add_to_cart', { product_id, quantity, price });
+PostHog.identify(userId);             // 登录后关联用户
 ```
 
-#### 3.4.2 事件设计
+#### 3.4.3 事件设计（PostHog）
 
-| 事件名 | 类型 | 触发时机 | 关键属性 | 上报策略 |
-| :--- | :--- | :--- | :--- | :--- |
-| app_launch | 生命周期 | App 冷/热启动 | launch_type | 批量 |
-| app_hide | 生命周期 | App 退后台 | stay_duration | 批量 |
-| page_view | 页面浏览 | 页面展示 | page_name, refer_page, stay_duration | 批量 |
-| click | 通用点击 | 元素点击 | page_name, element_id, content | 批量 |
-| exposure | 曝光 | 商品/模块进入视口 | module_id, item_ids, position | 批量 |
-| search | 搜索 | 提交搜索 | keyword, result_count | 批量 |
-| view_product | 商品浏览 | 进入商品详情 | product_id, price, from | 批量 |
-| add_to_cart | 加购 | 加购成功 | product_id, quantity, price | 批量 |
-| create_order | 提交订单 | 下单成功 | order_no, amount, item_count | **实时** |
-| pay_success | 支付成功 | Mock 支付成功 | order_no, amount | **实时** |
-| login_success | 登录成功 | 登录/静默续期成功 | login_type | **实时** |
-| logout | 登出 | 主动登出 | - | 批量 |
+| 事件名 | 类型 | 触发时机 | 关键属性 |
+| :--- | :--- | :--- | :--- |
+| app_launch | 自动 | App 冷/热启动 | launch_type |
+| page_view | 自动/手动 | 页面展示 | page_name, refer_page |
+| click | 手动 | 元素点击 | page_name, element_id, content |
+| exposure | 手动 | 商品/模块进入视口 | module_id, item_ids, position |
+| search | 手动 | 提交搜索 | keyword, result_count |
+| view_product | 手动 | 进入商品详情 | product_id, price, from |
+| add_to_cart | 手动 | 加购成功 | product_id, quantity, price |
+| create_order | 手动 | 下单成功 | order_no, amount, item_count |
+| pay_success | 手动 | Mock 支付成功 | order_no, amount |
+| login_success | 手动 | 登录/静默续期成功 | login_type |
+| logout | 手动 | 主动登出 | - |
 
-> 说明：实时事件走独立通道立即 flush，不受采样率与攒批策略影响。
+> 说明：核心漏斗事件为 view_product → add_to_cart → create_order → pay_success，在 PostHog 平台配置漏斗分析；PostHog 自带 `$screenview` 等自动事件作为补充。
 
 ---
 
@@ -148,27 +162,34 @@ Tracker.disable();                      // 用户关闭采集开关后停止上�
 | :--- | :--- | :--- |
 | **跨端框架** | React Native 0.7x + TypeScript | 一套代码覆盖 iOS / Android；类型安全，可维护性强 |
 | **导航** | @react-navigation（Native Stack + Bottom Tabs） | 社区标准方案，原生栈性能好，自动埋点依赖其页面事件 |
+| **UI 组件库** | React Native Paper + 自封装业务组件层 | Material 基础组件全（Button/Card/Badge/Snackbar 等）、维护活跃、主题系统可配置电商主色；电商业务组件（商品卡片/价格/数量步进器/空态/骨架屏）自封装复用 |
 | **网络层** | axios + 拦截器 | 拦截器中集中实现双 Token 无感刷新（单飞 + 重放），业务代码零感知 |
 | **状态管理** | zustand | 轻量（~1KB），避免 Demo 引入 Redux 复杂度 |
 | **Token 安全存储** | react-native-keychain / expo-secure-store | Refresh Token 落系统安全区（iOS Keychain / Android Keystore） |
-| **本地队列存储** | AsyncStorage | 埋点离线队列与搜索历史，无原生依赖 |
-| **埋点 SDK** | 自研 `@demo/tracker-sdk`（纯 TS 零依赖） | 独立 npm 包可复用；gzip < 10KB；track() < 1ms |
+| **本地缓存存储** | AsyncStorage | 搜索历史等轻量数据本地缓存，无原生依赖 |
+| **错误与性能监控** | @sentry/react-native | 官方 RN SDK；崩溃/性能自动埋桩；Sentry 免费版（5K 错误/月 + 1 万性能单位/月）够 Demo 使用 |
+| **业务埋点** | posthog-react-native + @posthog/react-native-plugin | 官方 RN SDK；事件采集、用户识别、会话回放（输入框/图片默认遮罩）；PostHog 免费版 100 万事件/月 |
 | **服务端框架** | NestJS 10 + TypeScript | 模块化架构清晰；依赖注入与守卫机制天然契合鉴权场景 |
 | **ORM** | TypeORM + mysql2 | 与 MySQL 配套，支持迁移与种子数据 |
 | **鉴权** | @nestjs/jwt + passport-jwt + bcryptjs | Access Token 签发校验；密码 bcrypt（cost=10）单向加密 |
-| **参数校验与限流** | class-validator + @nestjs/throttler | DTO 全量校验；登录/刷新/埋点接口限流防刷 |
+| **参数校验与限流** | class-validator + @nestjs/throttler | DTO 全量校验；登录/注册/刷新接口限流防刷 |
+| **定时任务** | @nestjs/schedule | 待支付超时取消（1 分钟）与支付后自动完成（10 分钟） |
 | **接口文档** | @nestjs/swagger | 自动生成可调试的 API 文档 |
-| **数据库** | MySQL 8.x | 业务数据 + 埋点事件（Demo 简化落单表） |
+| **数据库** | MySQL 8.x | 业务数据（用户/商品/订单等）存储 |
+
+> **组件分层策略**：UI 分两层——基础层用 React Native Paper（主题配置电商主色，提供 Button/Card/Badge/Snackbar 等通用组件）；业务层自封装商品卡片、价格展示、数量步进器、空态、骨架屏等电商业务组件（组件库不提供，统一封装复用），对应第 7 章"组件抽象化、封装性好"的要求。
 
 ### 4.2 关键技术难点攻克
 
 | 难点 | 挑战描述 | 解决方案 |
 | :--- | :--- | :--- |
 | **并发刷新竞态** | Access Token 过期瞬间多个请求同时 401，若各自刷新会产生多次刷新、多签 Token，甚至覆盖本地新 Token | 客户端**单飞**：同一时刻仅允许一个刷新请求在途，其余 401 请求入队等待结果后统一重放；服务端**旋转吊销**：旧 Refresh Token 刷新即作废，双保险杜绝竞态 |
-| **埋点"轻"与"不丢"的矛盾** | 既要 SDK 体积小、开销低，又要弱网/离线不丢事件 | 零依赖纯 TS 实现控制体积；track() 只做内存入队（< 1ms，无 IO）；攒批上报降请求频率；指数退避重试 + 本地持久化队列（上限 100 条）兜底，App 重启优先补报 |
-| **SDK 性能开销** | 埋点若与业务争抢 UI 线程，会导致页面卡顿、耗电增加 | 全部 IO（存储/网络）在队列异步处理；事件属性白名单校验防大对象；采样率可配；正常使用下每分钟网络请求 ≤ 6 次 |
+| **免费额度控制** | Sentry / PostHog 免费版均有量上限（5K 错误 + 1 万性能单位/月；100 万事件/月），超量事件会被丢弃或需转付费 | 开发环境不上报；配置采样率与错误忽略规则；Replay 设 sampleRate；额度使用率接入监控，接近上限时告警 |
+| **PostHog Cloud 国内访问与合规** | PostHog Cloud 数据在美/欧，国内访问稳定性与数据出境合规是正式上线的风险点 | Demo 阶段客户端直连 Cloud；预留**自托管迁移预案**（Docker Compose，埋点代码仅需改 host）；正式商用前完成合规评估 |
+| **会话回放隐私** | Session Replay 录制用户操作，存在密码与隐私泄漏风险 | 输入框默认遮罩、密码始终遮罩、图片遮罩；设置页提供采集开关（Opt-out） |
+| **双 SDK 用户与版本一致性** | Sentry 与 PostHog 两套 SDK 需共享用户身份、环境与 release，否则错误与行为数据无法对应 | 统一初始化模块：登录/登出同步调用 Sentry.setUser 与 PostHog.identify/reset；environment / release 统一注入 |
 | **双端行为差异** | iOS / Android 在安全存储、退后台时机、曝光检测等行为不一致 | 存储与生命周期统一封装（storage / appstate 模块）；曝光检测抽独立模块；双端各配置验收用例 |
-| **埋点接口防刷** | 埋点接口公开且高频，易被刷量污染数据、拖垮服务 | 事件名白名单（非白名单直接丢弃）+ 单事件 ≤ 4KB 校验 + 接口限流（如 20 req/min/IP） |
+| **交易并发安全** | 并发下单超卖、客户端传价改价、支付与取消竞态 | 金额一律**服务端计价**（不信任客户端金额）；库存**条件更新**（`stock >= n` 否则 40901）防超卖；订单状态机**条件更新**（仅待支付可流转）防竞态；下单/支付/取消均走事务 |
 | **Token 泄漏风险** | Refresh Token 有效期长，泄漏后危害大 | 服务端仅存哈希；客户端仅存安全区；旋转 + 复用检测（疑似盗用吊销全部 Token）；登出服务端吊销 |
 
 ### 4.3 后端架构与数据库设计 (Backend Architecture & Database Design)
@@ -179,11 +200,11 @@ Tracker.disable();                      // 用户关闭采集开关后停止上�
 
 **核心组件：**
 
-1. **React Native App（客户端）**：页面/组件层 + 埋点 SDK + axios 拦截器（无感刷新）。
+1. **React Native App（客户端）**：页面/组件层 + axios 拦截器（无感刷新）+ 双 SDK 接入层（Sentry / PostHog）。
 2. **Auth Module（NestJS）**：注册、登录、双 Token 签发/刷新/吊销，JWT 全局守卫鉴权。
-3. **业务 Modules（NestJS）**：Product（首页/分类/列表/详情）、Cart、Order、Address 模块。
-4. **Tracking Module（NestJS）**：埋点批量事件接收、白名单校验、限流、落库。
-5. **Database（MySQL）**：存储用户、商品、交易等结构化数据与埋点事件。
+3. **业务 Modules（NestJS）**：Product（首页/列表/详情）、Cart、Order、Address 模块。
+4. **Database（MySQL）**：存储用户、商品、交易等结构化数据。
+5. **外部 SaaS**：Sentry（崩溃/性能）与 PostHog（业务埋点/回放/分析），客户端 SDK 直连平台云服务，不经过后端。
 
 #### 4.3.2 数据库设计 (关键表)
 
@@ -191,40 +212,35 @@ Tracker.disable();                      // 用户关闭采集开关后停止上�
 | :--- | :--- | :--- | :--- |
 | `users` | 用户基础信息 | `id` (PK), `phone` (UNIQUE), `password_hash`, `nickname`, `avatar`, `status` | 密码 bcrypt 存储，禁止明文/可逆加密 |
 | `refresh_tokens` | 刷新凭证（仅存哈希） | `id` (PK), `user_id` (FK), `token_hash` (SHA-256, UNIQUE), `expires_at`, `revoked`, `replaced_by` | 支撑旋转吊销与复用检测，双 Token 机制核心表 |
-| `categories` | 商品分类树 | `id` (PK), `name`, `parent_id`, `sort`, `status` | 两级分类 |
-| `products` | 商品 | `id` (PK), `name`, `category_id` (FK), `price`, `original_price`, `main_image`, `images` (JSON), `stock`, `sales`, `description`, `status` | `sales` 参与综合排序；名称加索引支持 LIKE 搜索 |
+| `products` | 商品 | `id` (PK), `name`, `price`, `original_price`, `main_image`, `images` (JSON), `stock`, `sales`, `description`, `status`, `created_at` | `sales` 参与综合排序、`created_at` 支撑上新排序；名称加索引支持 LIKE 搜索 |
 | `cart_items` | 购物车条目 | `id` (PK), `user_id` (FK), `product_id` (FK), `quantity`, `selected` | `UNIQUE(user_id, product_id)` |
 | `addresses` | 收货地址 | `id` (PK), `user_id` (FK), `receiver_name`, `phone`, `province/city/district`, `detail`, `is_default` | 下单时快照入订单 |
 | `orders` | 订单主表 | `id` (PK), `order_no` (UNIQUE), `user_id` (FK), `total_amount`, `status` (0待支付/1已支付/2已完成/3已取消), `receiver_snapshot` (JSON), `created_at/paid_at` | 索引 `(user_id, status)` |
 | `order_items` | 订单明细（商品快照） | `id` (PK), `order_id` (FK), `product_id`, `product_name`, `price`, `quantity`, `image` | 快照保证历史订单不随商品变动 |
-| `events` | 埋点事件 | `id` (PK), `event_name`, `props` (JSON), `common` (JSON), `user_id`, `device_id`, `session_id`, `ts` | Demo 简化单表；生产建议经 MQ 入 ClickHouse 等分析型存储 |
 
 #### 4.3.3 核心 API 接口定义
 
-| 模块 | 接口/路径 | 方法 | 描述 |
-| :--- | :--- | :--- | :--- |
-| **用户** | `/api/v1/auth/register` | POST | 注册（手机号+密码），返回双 Token 与用户信息 |
-| **用户** | `/api/v1/auth/login` | POST | 登录，返回双 Token 与用户信息 |
-| **用户** | `/api/v1/auth/refresh` | POST | 刷新双 Token（旋转），入参 refreshToken；旧串即刻作废 |
-| **用户** | `/api/v1/auth/logout` | POST | 登出，吊销 Refresh Token（需 Bearer） |
-| **用户** | `/api/v1/users/me` | GET | 当前用户信息 |
-| **商品** | `/api/v1/home` | GET | 首页聚合（Banner + 推荐商品） |
-| **商品** | `/api/v1/categories` | GET | 分类树 |
-| **商品** | `/api/v1/products` | GET | 商品列表（categoryId / keyword / sort / page / pageSize） |
-| **商品** | `/api/v1/products/:id` | GET | 商品详情 |
-| **购物车** | `/api/v1/cart` | GET / POST | 购物车列表 / 加购 |
-| **购物车** | `/api/v1/cart/:id` | PATCH / DELETE | 修改数量与选中态 / 删除条目 |
-| **购物车** | `/api/v1/cart/merge` | POST | 游客本地购物车合并（登录后调用） |
-| **地址** | `/api/v1/addresses` | GET / POST | 地址列表 / 新增 |
-| **地址** | `/api/v1/addresses/:id` | PUT / DELETE | 修改 / 删除 |
-| **订单** | `/api/v1/orders` | POST | 下单（addressId + 商品条目或购物车勾选项） |
-| **订单** | `/api/v1/orders` | GET | 订单列表（status / page） |
-| **订单** | `/api/v1/orders/:id` | GET | 订单详情 |
-| **订单** | `/api/v1/orders/:id/pay` | POST | Mock 支付 |
-| **订单** | `/api/v1/orders/:id/cancel` | POST | 取消订单（仅待支付） |
-| **埋点** | `/api/v1/events/batch` | POST | 批量事件上报（公开 + 限流） |
+| 模块 | 接口/路径 | 方法 | 鉴权 | 描述 |
+| :--- | :--- | :--- | :--- | :--- |
+| **用户** | `/api/v1/auth/register` | POST | 公开（限流） | 注册（手机号+密码），返回双 Token 与用户信息 |
+| **用户** | `/api/v1/auth/login` | POST | 公开（限流） | 登录，返回双 Token 与用户信息 |
+| **用户** | `/api/v1/auth/refresh` | POST | 公开（限流） | 刷新双 Token（旋转），入参 refreshToken；旧串即刻作废 |
+| **用户** | `/api/v1/auth/logout` | POST | 需登录 | 登出，吊销该用户全部 Refresh Token |
+| **用户** | `/api/v1/users/me` | GET | 需登录 | 当前用户信息（手机号脱敏） |
+| **商品** | `/api/v1/home` | GET | 公开 | 首页商品流（支持 sort 排序 + page 分页） |
+| **商品** | `/api/v1/products` | GET | 公开 | 商品列表（keyword / sort / page / pageSize） |
+| **商品** | `/api/v1/products/:id` | GET | 公开 | 商品详情 |
+| **购物车** | `/api/v1/cart` | GET / POST | 需登录 | 购物车列表 / 加购 |
+| **购物车** | `/api/v1/cart/:id` | PATCH / DELETE | 需登录 | 修改数量与选中态 / 删除条目 |
+| **地址** | `/api/v1/addresses` | GET / POST | 需登录 | 地址列表 / 新增 |
+| **地址** | `/api/v1/addresses/:id` | PUT / DELETE | 需登录 | 修改 / 删除 |
+| **订单** | `/api/v1/orders` | POST | 需登录 | 下单（addressId + productId/quantity 条目或购物车勾选项） |
+| **订单** | `/api/v1/orders` | GET | 需登录 | 订单列表（status / page） |
+| **订单** | `/api/v1/orders/:id` | GET | 需登录 | 订单详情 |
+| **订单** | `/api/v1/orders/:id/pay` | POST | 需登录 | Mock 支付 |
+| **订单** | `/api/v1/orders/:id/cancel` | POST | 需登录 | 取消订单（仅待支付） |
 
-统一响应：`{ "code": 0, "message": "ok", "data": {} }`；鉴权接口需 `Authorization: Bearer <accessToken>`（标注公开的除外）。
+统一响应：`{ "code": 0, "message": "ok", "data": {} }`。安全约定：**需登录**接口由全局守卫强制校验 `Authorization: Bearer <accessToken>`（客户端拦截仅作体验优化，权限以服务端为准）；所有按 id 操作的接口（购物车/地址/订单）查询必须附带 `user_id` 过滤（防 IDOR 越权）；下单金额一律由服务端按数据库单价计算，不信任客户端金额。埋点与监控数据由客户端 SDK 直连 Sentry / PostHog，不经过本后端。
 
 #### 4.3.4 关键业务逻辑实现
 
@@ -237,25 +253,27 @@ Tracker.disable();                      // 用户关闭采集开关后停止上�
 - **更新与重放**：客户端更新本地 Token → 唤醒挂起队列统一重放（每请求最多重放 1 次）→ 用户全程无感知。
 - **降级与防盗**：刷新返回 40102（已吊销/复用）→ 服务端吊销该用户全部 Token → 客户端清本地登录态跳登录页。
 
-**2. 埋点采集与上报链路**
+**2. 数据监控与埋点接入链路**
 
-- **采集**：`Tracker.track(event, props)` 合并公共参数（设备/会话/用户/时间戳）生成标准事件，入内存队列（< 1ms 返回）。
-- **攒批**：队列 ≥ 20 条 / 距上次 ≥ 10s / App 退后台触发 flush；`create_order`、`pay_success`、`login_success` 实时事件立即 flush，不受采样影响。
-- **上报**：POST `/api/v1/events/batch`（单批 ≤ 50 条）；失败按 1s → 2s → 4s 指数退避重试，最多 3 次。
-- **兜底**：重试仍失败 → 事件写入 AsyncStorage 持久化队列（上限 100 条，超限丢最旧）→ App 下次启动优先补报。
-- **服务端落库**：白名单校验 → 大小校验 → 限流 → 批量插入 `events` 表。
+- **统一初始化**：App 启动时初始化 Sentry（dsn、tracesSampleRate、environment）与 PostHog（apiKey、host、Replay 开关与遮罩配置），release 版本号统一注入两平台。
+- **崩溃与性能**：JS/Native 异常与页面性能事务由 @sentry/react-native 自动采集直传 Sentry Cloud；登录后 `Sentry.setUser` 关联用户。
+- **业务事件**：业务代码调用 `PostHog.capture(event, props)` 上报埋点（下单/支付/登录成功等关键事件在动作成功后立即触发）；页面浏览与曝光由统一封装的导航/曝光工具触发。
+- **用户识别**：登录成功后 `PostHog.identify(userId)` 将历史匿名事件归并至用户；登出时 `PostHog.reset()` 并清空 Sentry 用户。
+- **分析闭环**：在 PostHog 平台配置转化漏斗（浏览 → 加购 → 下单 → 支付）与留存报表；错误与性能回归通过 Sentry release 关联排查。
+- **合规开关**：设置页采集开关（Opt-out）关闭后，停止 capture 与 Replay 上报。
 
 **3. 下单与订单状态流转**
 
-- **下单**：客户端提交地址与商品条目 → 服务端校验商品状态与库存 → 扣减库存 → 生成订单（order_no、金额、地址与商品快照）→ 清空购物车对应勾选项 → 返回订单号。
-- **状态流转**：`待支付(0) → 已支付(1) → 已完成(2)`；`待支付(0) → 已取消(3)`（取消回滚库存）。Demo 简化，不引入发货物流态。
-- **埋点联动**：下单成功立即上报 `create_order`（实时），Mock 支付成功上报 `pay_success`（实时）。
-
-**4. 游客购物车合并**
-
-- 未登录加购写入本地存储；登录成功后调 `/api/v1/cart/merge` 上传本地条目；服务端按 `UNIQUE(user_id, product_id)` 对同商品数量叠加；合并完成清除本地购物车。
+- **下单**：客户端提交地址与商品条目（productId + quantity）→ 服务端校验商品状态与库存 → 按**数据库单价**计算订单金额（不信任客户端金额，防改价）→ 事务内扣减库存（**条件更新** `UPDATE products SET stock = stock - n WHERE id = ? AND stock >= n`，影响行数为 0 报 40901，防并发超卖）→ 生成订单（order_no、金额、地址与商品快照）→ 清空购物车对应勾选项 → 返回订单号。
+- **状态更新并发保护**：支付/取消/超时取消均用**条件更新** `UPDATE orders SET status = ? WHERE id = ? AND status = ?`（待支付→已支付/已取消时 `status = 0`；已支付→已完成时 `status = 1`），影响行数为 0 报 40902，防支付与取消并发竞态。
+- **状态流转**：`待支付(0) → 已支付(1) → 已完成(2)`；`待支付(0) → 已取消(3)`。Demo 无发货物流态。
+  - **超时自动取消**：待支付订单 **1 分钟**未支付，服务端定时任务（每分钟扫描）自动取消并回滚库存；
+  - **自动完成**：支付成功 **10 分钟**后，服务端定时任务模拟"已完成"。
+- **埋点联动**：下单成功立即 `PostHog.capture('create_order', {...})`，Mock 支付成功上报 `pay_success`。
 
 ---
+
+
 
 ## 5. 商业模式与合规
 
@@ -265,13 +283,13 @@ Tracker.disable();                      // 用户关闭采集开关后停止上�
 
 | 版本 | 目标用户 | 核心权益 | 限制与差异 |
 | :--- | :--- | :--- | :--- |
-| **游客模式** | 未登录用户 | 浏览首页/分类/搜索/详情；本地购物车加购 | 不可下单/结算、不可管理地址、不可查看订单；触发相关操作时引导登录 |
+| **游客模式** | 未登录用户 | 仅浏览首页/搜索/筛选排序/商品详情 | 不可加购、不可用购物车/下单/结算、不可管理地址、不可查看订单与个人中心；访问需登录功能时显示未登录提示并引导登录 |
 | **登录用户** | 注册用户 | 全部功能：下单、订单管理、地址管理、购物车云同步 | 需通过双 Token 鉴权；登录态过期自动续期，续期失败重新登录 |
 
 ### 5.2 数据合规与成本控制
 
-1. **数据合规**：埋点公共参数不含手机号、收件人、地址、Token 等敏感信息；用户 user_id 映射采用服务端加密（Demo 可直接存原始 ID，文档标注合规 TODO）；设置页提供**采集开关（Opt-out）**，关闭后 SDK 停止采集与上报；隐私协议中明确告知用户数据用途。
-2. **成本控制**：埋点采用**攒批上报**（正常使用每分钟请求 ≤ 6 次）大幅降低请求成本；接口**限流 + 事件名白名单 + 单事件大小校验**防止刷量攻击；SDK 支持**采样率**按需丢弃普通事件，实时事件不受影响。
+1. **数据合规**：埋点属性不含手机号、收件人、地址、Token 等敏感信息；PostHog 会话回放**默认遮罩所有文本输入框与图片**（密码始终遮罩）；设置页提供**采集开关（Opt-out）**；**注意**：PostHog Cloud 数据存储于美/欧，Demo 阶段可接受，正式商用前需完成数据出境合规评估（预案：自托管 PostHog，埋点代码仅需改 host 配置）。
+2. **成本控制**：全部使用免费额度——PostHog Cloud Free（100 万事件/月）+ Sentry Developer（5K 错误 + 1 万性能单位/月），Demo 规模零成本；通过**开发环境不上报、采样率、Replay 采样、非致命错误过滤**控制用量；额度使用率接入监控，接近上限时告警。
 
 ---
 
@@ -319,10 +337,10 @@ Tracker.disable();                      // 用户关闭采集开关后停止上�
 
 | 模块 | 验收条目 |
 | :--- | :--- |
-| 登录鉴权 | ① 注册/登录返回双 Token；② Access 过期自动刷新并重放，用户无感知；③ 并发 401 仅产生一次刷新（服务端日志验证单飞）；④ Refresh 过期跳登录；⑤ 登出后旧 Refresh 立即失效；⑥ 杀 App 重启仍为登录态 |
-| 商品域 | 首页/分类/搜索/列表/详情可用；筛选排序正确；分页无重复遗漏 |
-| 交易域 | 加购 → 结算 → 下单 → Mock 支付 → 状态流转完整；库存一致；游客购物车登录后合并 |
-| 埋点 SDK | ① 核心事件可在 events 表查询；② 断网操作恢复后补报成功；③ 退后台触发 flush；④ 体积与耗时达标；⑤ 关闭采集后不再上报 |
+| 登录鉴权 | ① 注册/登录返回双 Token；② Access 过期自动刷新并重放，用户无感知；③ 并发 401 仅产生一次刷新（服务端日志验证单飞）；④ Refresh 过期跳登录；⑤ 登出后该用户**全部** Refresh Token 失效；⑥ 杀 App 重启仍为登录态 |
+| 商品域 | 首页/搜索/列表/详情可用；排序切换与"综合"下拉正确；分页无重复遗漏 |
+| 交易域 | 加购 → 结算 → 下单 → Mock 支付 → 状态流转完整；库存一致；未登录加购/进购物车被拦截并引导登录；待支付 1 分钟自动取消并回滚库存；支付后 10 分钟自动完成；并发下单同商品不超卖 |
+| 监控与埋点 | ① Sentry 可查 JS/Native 崩溃与页面性能事务；② PostHog 可查事件明细（page_view/click/add_to_cart/create_order/pay_success）；③ 转化漏斗（浏览→加购→下单→支付）可配置并出数；④ 登录后事件与用户 ID 关联正确；⑤ Session Replay 可回放且输入框已遮罩；⑥ 关闭采集开关后不再上报；⑦ 免费额度使用率 < 50% |
 | 工程质量 | README 一键跑通前后端；种子数据一键初始化；Swagger 可访问 |
 
 **里程碑：**
@@ -330,7 +348,7 @@ Tracker.disable();                      // 用户关闭采集开关后停止上�
 | 里程碑 | 周期 | 交付物 |
 | :--- | :--- | :--- |
 | M1 工程与鉴权 | 3 天 | Monorepo 脚手架（RN + NestJS + MySQL）；双 Token 全链路；单飞刷新；refresh_tokens 表与旋转逻辑 |
-| M2 商品域 | 3 天 | 首页/分类/搜索/列表/详情 + API + 种子数据 |
-| M3 交易域 | 3 天 | 购物车（含游客合并）/地址/订单全流程/Mock 支付 |
-| M4 埋点 SDK | 3 天 | tracker-sdk 包（采集/队列/攒批/重试/补报）；全站接入；events 落库验证 |
+| M2 商品域 | 3 天 | 首页（搜索组件 + 排序组件 + 瀑布流）/搜索页/详情 + API + 种子数据 |
+| M3 交易域 | 3 天 | 购物车/地址/订单全流程/Mock 支付 |
+| M4 监控与埋点接入 | 2 天 | Sentry（崩溃+性能）与 PostHog（事件+漏斗+Replay）接入；全站埋点；额度与遮罩验证 |
 | M5 联调验收 | 2 天 | 按验收条目逐项验证；README/接口文档；缺陷修复 |
