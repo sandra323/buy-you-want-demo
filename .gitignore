@@ -1,5 +1,6 @@
 # 本地工具配置
 .claude/
+.cursor/
 
 # 参考文档（其他项目 PRD，不入库）
 Fluent App 产品需求文档 (PRD).md
@@ -7,14 +8,36 @@ Fluent App 产品需求文档 (PRD).md
 # macOS
 .DS_Store
 
-# 依赖与构建产物（后续前端/后端代码）
+# 依赖与构建产物
 node_modules/
 dist/
 build/
+coverage/
+*.tsbuildinfo
 
-# 环境变量（后续后端配置）
+# 环境变量
 .env
 .env.local
+.env.*.local
 
 # 日志
 *.log
+npm-debug.log*
+pnpm-debug.log*
+
+# 包管理器
+.pnpm-store/
+
+# Expo / React Native
+.expo/
+web-build/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
