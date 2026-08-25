@@ -3,6 +3,26 @@
 Source: [`product-brief.md`](./product-brief.md) v1.3 (LightBuy / 轻购 C-end ecommerce demo).
 This document is the implementation contract for the MVP. Do not add features listed as out of scope in §3.
 
+> **Agent index** (read this block first; jump by need — do not ingest the whole file)
+>
+> | § | One-liner | When to open |
+> | :--- | :--- | :--- |
+> | [§1 Summary](#1-technical-summary) | RN+Nest+MySQL; dual-token; Sentry+PostHog; monorepo assumptions | Kickoff / constraints |
+> | [§2 Stack](#2-recommended-tech-stack) | Prefer existing libs; Paper, Navigation, Nest, TypeORM; design tokens | Dep choice / theme colors |
+> | [§3 Scope](#3-system-scope) | MVP in / out lists | “Is X in scope?” |
+> | [§4 Architecture](#4-high-level-architecture) | Tabs/stacks; modules; `/api/v1`; integration points | Structure / routing |
+> | [§5 Modules](#5-core-modules) | **Algorithms:** refresh, single-flight, sort/LIKE, cart, address default, **create-order**, state machine, `tick`, analytics, ui-kit | Implementing a domain |
+> | [§6 Data model](#6-data-model) | 7 tables + indexes/FKs | Migrations / entities |
+> | [§7 API](#7-api--interface-contracts) | Envelope `{code,message,data}`; routes; HTTP↔code map | Endpoint / error codes |
+> | [§8 State / UX](#8-state-and-data-flow) | zustand; cold start; loading/empty/error; guest; SecureStore/AsyncStorage | Client state / screens |
+> | [§9 Security](#9-security-and-permission-considerations) | Guest vs member; IDOR→40401; env secrets; privacy | AuthZ / secrets |
+> | [§10 NFR](#10-non-functional-technical-expectations) | Perf, a11y, logging, **test baseline**, deploy loop | Tests / CI / ops |
+> | [§11 Risks](#11-delivery-risks-and-trade-offs) | Refresh loop, oversell, ATS, Metro shared, 1-min cancel | Known pitfalls |
+> | [§12 Build order](#12-suggested-build-order) | Steps 1–15 → PRD M1–M5 | Sequencing (detail in backlog) |
+> | [§13 Open Q](#13-open-questions) | Defaults in force (no blockers) | Do not re-litigate |
+>
+> **Siblings:** PRD → [`product-brief.md`](./product-brief.md); task-by-task → [`execution-backlog.md`](./execution-backlog.md). Hotspots: refresh algorithm §5 auth; create-order §5 order; interceptor §5 http-client; envelope §7.
+
 ---
 
 ## 1. Technical Summary
@@ -39,6 +59,20 @@ Business loop to implement: home (search + sort + two-column waterfall) → sear
 ---
 
 ## 2. Recommended Tech Stack
+
+### Selection principles
+
+**Prefer existing libraries over custom code.** When choosing or adding a dependency, reach for a mature npm package (or an official vendor SDK) if it covers most of the need. Do not reinvent wheels for solved problems.
+
+| Prefer a package when… | Build in-repo only when… |
+| :--- | :--- |
+| A maintained library fits Expo SDK 52 / RN 0.76 and the monorepo toolchain | No reasonable package exists, or every candidate breaks Dev Client / Metro / Nest constraints |
+| An official SDK exists (Sentry, PostHog, `@nestjs/*`, Paper, React Navigation) | The gap is **LightBuy-specific** domain UI or business rules (product card, server-side pricing, token rotation) |
+| The dependency is already in the stack table below | A package would add heavy native surface area for a one-liner (e.g. do not add FastImage when `expo-image` suffices) |
+
+Concrete defaults already following this rule: Paper for generic UI primitives; React Navigation for routing; `class-validator` + Nest pipes for DTO validation; TypeORM migrations for schema; `axios` interceptors for refresh (not a hand-rolled `fetch` layer); `@shopify/flash-list` or RN `FlatList` for lists — **do not** write a custom virtualized list. Before adding any new dependency, check Expo's recommended modules and the NestJS ecosystem first; document the reason in the PR if the choice is non-obvious.
+
+Custom code belongs in `ui-kit` and domain services — not in reimplementing buttons, navigators, validators, or analytics transports.
 
 ### Frontend (`apps/mobile`)
 

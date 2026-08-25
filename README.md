@@ -14,6 +14,7 @@ C 端电商跨端 Demo：一套 TypeScript 代码覆盖 iOS / Android，跑通�
 | :--- | :--- |
 | [product-brief.md](./product-brief.md) | 产品需求（PRD v1.3） |
 | [build-spec.md](./build-spec.md) | 实施合同（栈、API、数据模型、安全、构建顺序） |
+| [execution-backlog.md](./execution-backlog.md) | 按里程碑拆分的执行 backlog（Task 级验收） |
 
 范围以 PRD §3 / Build Spec §3 为准，不要把已排除项加回来。
 
