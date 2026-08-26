@@ -15,22 +15,14 @@ export type {
   AuthTokensData,
   LogoutData,
 } from './auth';
-export type {
-  ProductCard,
-  ProductDetail,
-  CatalogListQuery,
-} from './catalog';
+export type { ProductCard, ProductDetail, CatalogListQuery } from './catalog';
 export type {
   CartItem,
   CartData,
   AddCartItemRequest,
   UpdateCartItemRequest,
 } from './cart';
-export type {
-  Address,
-  AddressInput,
-  ReceiverSnapshot,
-} from './address';
+export type { Address, AddressInput, ReceiverSnapshot } from './address';
 export type {
   OrderLineItemInput,
   CreateOrderRequest,

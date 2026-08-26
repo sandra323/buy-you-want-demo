@@ -7,7 +7,12 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "lint": "pnpm -r --if-present run lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "pnpm --filter @lightbuy/shared build && pnpm --filter api typecheck && pnpm --filter mobile typecheck",
     "test": "pnpm -r --if-present run test"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2"
   }
 }

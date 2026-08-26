@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+coverage
+*.tsbuildinfo
+pnpm-lock.yaml
+.expo
+apps/mobile/ios
+apps/mobile/android

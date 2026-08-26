@@ -10,11 +10,11 @@ C 端电商跨端 Demo：一套 TypeScript 代码覆盖 iOS / Android，跑通�
 
 ## 文档
 
-| 文档 | 用途 |
-| :--- | :--- |
-| [product-brief.md](./product-brief.md) | 产品需求（PRD v1.3） |
-| [build-spec.md](./build-spec.md) | 实施合同（栈、API、数据模型、安全、构建顺序） |
-| [execution-backlog.md](./execution-backlog.md) | 按里程碑拆分的执行 backlog（Task 级验收） |
+| 文档                                           | 用途                                          |
+| :--------------------------------------------- | :-------------------------------------------- |
+| [product-brief.md](./product-brief.md)         | 产品需求（PRD v1.3）                          |
+| [build-spec.md](./build-spec.md)               | 实施合同（栈、API、数据模型、安全、构建顺序） |
+| [execution-backlog.md](./execution-backlog.md) | 按里程碑拆分的执行 backlog（Task 级验收）     |
 
 范围以 PRD §3 / Build Spec §3 为准，不要把已排除项加回来。
 
@@ -46,11 +46,11 @@ eas build --profile development
 
 API 热更新可对着 Compose 里的 MySQL 跑 `pnpm --filter api start:dev`。
 
-| 客户端 | `EXPO_PUBLIC_API_URL` |
-| :--- | :--- |
-| iOS 模拟器 | `http://localhost:3000` |
-| Android 模拟器 | `http://10.0.2.2:3000` |
-| 真机 | 电脑局域网 IP，或 HTTPS tunnel。Development profile 需允许明文 HTTP（ATS / `usesCleartextTraffic`），评审安装更推荐 tunnel。 |
+| 客户端         | `EXPO_PUBLIC_API_URL`                                                                                                        |
+| :------------- | :--------------------------------------------------------------------------------------------------------------------------- |
+| iOS 模拟器     | `http://localhost:3000`                                                                                                      |
+| Android 模拟器 | `http://10.0.2.2:3000`                                                                                                       |
+| 真机           | 电脑局域网 IP，或 HTTPS tunnel。Development profile 需允许明文 HTTP（ATS / `usesCleartextTraffic`），评审安装更推荐 tunnel。 |
 
 - Swagger：`http://localhost:3000/api/docs`
 - Health：`GET /api/v1/health`

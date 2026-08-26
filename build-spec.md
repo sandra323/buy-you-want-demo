@@ -5,21 +5,21 @@ This document is the implementation contract for the MVP. Do not add features li
 
 > **Agent index** (read this block first; jump by need — do not ingest the whole file)
 >
-> | § | One-liner | When to open |
-> | :--- | :--- | :--- |
-> | [§1 Summary](#1-technical-summary) | RN+Nest+MySQL; dual-token; Sentry+PostHog; monorepo assumptions | Kickoff / constraints |
-> | [§2 Stack](#2-recommended-tech-stack) | Prefer existing libs; Paper, Navigation, Nest, TypeORM; design tokens | Dep choice / theme colors |
-> | [§3 Scope](#3-system-scope) | MVP in / out lists | “Is X in scope?” |
-> | [§4 Architecture](#4-high-level-architecture) | Tabs/stacks; modules; `/api/v1`; integration points | Structure / routing |
-> | [§5 Modules](#5-core-modules) | **Algorithms:** refresh, single-flight, sort/LIKE, cart, address default, **create-order**, state machine, `tick`, analytics, ui-kit | Implementing a domain |
-> | [§6 Data model](#6-data-model) | 7 tables + indexes/FKs | Migrations / entities |
-> | [§7 API](#7-api--interface-contracts) | Envelope `{code,message,data}`; routes; HTTP↔code map | Endpoint / error codes |
-> | [§8 State / UX](#8-state-and-data-flow) | zustand; cold start; loading/empty/error; guest; SecureStore/AsyncStorage | Client state / screens |
-> | [§9 Security](#9-security-and-permission-considerations) | Guest vs member; IDOR→40401; env secrets; privacy | AuthZ / secrets |
-> | [§10 NFR](#10-non-functional-technical-expectations) | Perf, a11y, logging, **test baseline**, deploy loop | Tests / CI / ops |
-> | [§11 Risks](#11-delivery-risks-and-trade-offs) | Refresh loop, oversell, ATS, Metro shared, 1-min cancel | Known pitfalls |
-> | [§12 Build order](#12-suggested-build-order) | Steps 1–15 → PRD M1–M5 | Sequencing (detail in backlog) |
-> | [§13 Open Q](#13-open-questions) | Defaults in force (no blockers) | Do not re-litigate |
+> | §                                                        | One-liner                                                                                                                            | When to open                   |
+> | :------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------- | :----------------------------- |
+> | [§1 Summary](#1-technical-summary)                       | RN+Nest+MySQL; dual-token; Sentry+PostHog; monorepo assumptions                                                                      | Kickoff / constraints          |
+> | [§2 Stack](#2-recommended-tech-stack)                    | Prefer existing libs; Paper, Navigation, Nest, TypeORM; design tokens                                                                | Dep choice / theme colors      |
+> | [§3 Scope](#3-system-scope)                              | MVP in / out lists                                                                                                                   | “Is X in scope?”               |
+> | [§4 Architecture](#4-high-level-architecture)            | Tabs/stacks; modules; `/api/v1`; integration points                                                                                  | Structure / routing            |
+> | [§5 Modules](#5-core-modules)                            | **Algorithms:** refresh, single-flight, sort/LIKE, cart, address default, **create-order**, state machine, `tick`, analytics, ui-kit | Implementing a domain          |
+> | [§6 Data model](#6-data-model)                           | 7 tables + indexes/FKs                                                                                                               | Migrations / entities          |
+> | [§7 API](#7-api--interface-contracts)                    | Envelope `{code,message,data}`; routes; HTTP↔code map                                                                                | Endpoint / error codes         |
+> | [§8 State / UX](#8-state-and-data-flow)                  | zustand; cold start; loading/empty/error; guest; SecureStore/AsyncStorage                                                            | Client state / screens         |
+> | [§9 Security](#9-security-and-permission-considerations) | Guest vs member; IDOR→40401; env secrets; privacy                                                                                    | AuthZ / secrets                |
+> | [§10 NFR](#10-non-functional-technical-expectations)     | Perf, a11y, logging, **test baseline**, deploy loop                                                                                  | Tests / CI / ops               |
+> | [§11 Risks](#11-delivery-risks-and-trade-offs)           | Refresh loop, oversell, ATS, Metro shared, 1-min cancel                                                                              | Known pitfalls                 |
+> | [§12 Build order](#12-suggested-build-order)             | Steps 1–15 → PRD M1–M5                                                                                                               | Sequencing (detail in backlog) |
+> | [§13 Open Q](#13-open-questions)                         | Defaults in force (no blockers)                                                                                                      | Do not re-litigate             |
 >
 > **Siblings:** PRD → [`product-brief.md`](./product-brief.md); task-by-task → [`execution-backlog.md`](./execution-backlog.md). Hotspots: refresh algorithm §5 auth; create-order §5 order; interceptor §5 http-client; envelope §7.
 
@@ -64,11 +64,11 @@ Business loop to implement: home (search + sort + two-column waterfall) → sear
 
 **Prefer existing libraries over custom code.** When choosing or adding a dependency, reach for a mature npm package (or an official vendor SDK) if it covers most of the need. Do not reinvent wheels for solved problems.
 
-| Prefer a package when… | Build in-repo only when… |
-| :--- | :--- |
-| A maintained library fits Expo SDK 52 / RN 0.76 and the monorepo toolchain | No reasonable package exists, or every candidate breaks Dev Client / Metro / Nest constraints |
-| An official SDK exists (Sentry, PostHog, `@nestjs/*`, Paper, React Navigation) | The gap is **LightBuy-specific** domain UI or business rules (product card, server-side pricing, token rotation) |
-| The dependency is already in the stack table below | A package would add heavy native surface area for a one-liner (e.g. do not add FastImage when `expo-image` suffices) |
+| Prefer a package when…                                                         | Build in-repo only when…                                                                                             |
+| :----------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- |
+| A maintained library fits Expo SDK 52 / RN 0.76 and the monorepo toolchain     | No reasonable package exists, or every candidate breaks Dev Client / Metro / Nest constraints                        |
+| An official SDK exists (Sentry, PostHog, `@nestjs/*`, Paper, React Navigation) | The gap is **LightBuy-specific** domain UI or business rules (product card, server-side pricing, token rotation)     |
+| The dependency is already in the stack table below                             | A package would add heavy native surface area for a one-liner (e.g. do not add FastImage when `expo-image` suffices) |
 
 Concrete defaults already following this rule: Paper for generic UI primitives; React Navigation for routing; `class-validator` + Nest pipes for DTO validation; TypeORM migrations for schema; `axios` interceptors for refresh (not a hand-rolled `fetch` layer); `@shopify/flash-list` or RN `FlatList` for lists — **do not** write a custom virtualized list. Before adding any new dependency, check Expo's recommended modules and the NestJS ecosystem first; document the reason in the PR if the choice is non-obvious.
 
@@ -76,17 +76,17 @@ Custom code belongs in `ui-kit` and domain services — not in reimplementing bu
 
 ### Frontend (`apps/mobile`)
 
-| Choice | Why for MVP |
-| :--- | :--- |
-| Expo SDK 52 + TypeScript (strict) | Fast bootstrap, EAS CI/CD, still RN 0.76. Dev Client required for native Sentry and SecureStore. |
-| React Navigation (Native Stack + Bottom Tabs) | Matches PRD; native stack performance; screen events feed `page_view`. |
-| React Native Paper | Material primitives (Button/Card/Badge/Snackbar) + theme object for the orange ecommerce palette. |
-| zustand | Auth/session, cart badge, catalog sort/keyword. Avoid Redux for this demo. |
-| axios | One interceptor owns token inject, 401 single-flight refresh, and one replay. |
-| expo-secure-store | Refresh + Access in iOS Keychain / Android Keystore. |
-| @react-native-async-storage/async-storage | Search history (last 10, login-only) and analytics opt-out flag. |
-| expo-image | List/detail images with lazy load. Do **not** add FastImage. |
-| react-native-reanimated (already in Expo) | Add-to-cart parabola + cart-badge pulse. |
+| Choice                                        | Why for MVP                                                                                       |
+| :-------------------------------------------- | :------------------------------------------------------------------------------------------------ |
+| Expo SDK 52 + TypeScript (strict)             | Fast bootstrap, EAS CI/CD, still RN 0.76. Dev Client required for native Sentry and SecureStore.  |
+| React Navigation (Native Stack + Bottom Tabs) | Matches PRD; native stack performance; screen events feed `page_view`.                            |
+| React Native Paper                            | Material primitives (Button/Card/Badge/Snackbar) + theme object for the orange ecommerce palette. |
+| zustand                                       | Auth/session, cart badge, catalog sort/keyword. Avoid Redux for this demo.                        |
+| axios                                         | One interceptor owns token inject, 401 single-flight refresh, and one replay.                     |
+| expo-secure-store                             | Refresh + Access in iOS Keychain / Android Keystore.                                              |
+| @react-native-async-storage/async-storage     | Search history (last 10, login-only) and analytics opt-out flag.                                  |
+| expo-image                                    | List/detail images with lazy load. Do **not** add FastImage.                                      |
+| react-native-reanimated (already in Expo)     | Add-to-cart parabola + cart-badge pulse.                                                          |
 
 **Do not use Expo Router.** Keep a classic `App.tsx` + navigator tree so the auth gate and analytics screen names stay explicit.
 
@@ -110,17 +110,17 @@ Interaction notes from the PRD that the UI kit must support: skeleton instead of
 
 ### Backend (`apps/api`)
 
-| Choice | Why for MVP |
-| :--- | :--- |
-| NestJS 10 + TypeScript | Module + Guard model matches JWT auth. One process; no microservices. |
-| TypeORM + mysql2 | Migrations are the schema source of truth. `synchronize: true` only when `NODE_ENV=development` **and** `TYPEORM_SYNC=1`. Never in CI/prod. |
-| @nestjs/jwt + passport-jwt | Access JWT verify in a global guard. Refresh is **not** a JWT. |
-| bcryptjs cost 10 | Password hash. Never reversible crypto. |
-| class-validator + ValidationPipe (`whitelist`, `forbidNonWhitelisted`) | All body/query DTOs. |
-| @nestjs/throttler | Register / login / refresh only (e.g. 10/min/IP). Office NAT may share one IP — document that reviewers can raise the limit in `.env`. |
-| @nestjs/schedule | Unpaid cancel (1 min) and paid complete (10 min). Cron calls `OrderJobs.tick(now)` every 60s. **One API replica only** (no leader election). |
-| @nestjs/swagger | `/api/docs` for reviewers. |
-| nestjs-pino (or Nest Logger + JSON in prod) | Request id + user id on API logs. |
+| Choice                                                                 | Why for MVP                                                                                                                                  |
+| :--------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
+| NestJS 10 + TypeScript                                                 | Module + Guard model matches JWT auth. One process; no microservices.                                                                        |
+| TypeORM + mysql2                                                       | Migrations are the schema source of truth. `synchronize: true` only when `NODE_ENV=development` **and** `TYPEORM_SYNC=1`. Never in CI/prod.  |
+| @nestjs/jwt + passport-jwt                                             | Access JWT verify in a global guard. Refresh is **not** a JWT.                                                                               |
+| bcryptjs cost 10                                                       | Password hash. Never reversible crypto.                                                                                                      |
+| class-validator + ValidationPipe (`whitelist`, `forbidNonWhitelisted`) | All body/query DTOs.                                                                                                                         |
+| @nestjs/throttler                                                      | Register / login / refresh only (e.g. 10/min/IP). Office NAT may share one IP — document that reviewers can raise the limit in `.env`.       |
+| @nestjs/schedule                                                       | Unpaid cancel (1 min) and paid complete (10 min). Cron calls `OrderJobs.tick(now)` every 60s. **One API replica only** (no leader election). |
+| @nestjs/swagger                                                        | `/api/docs` for reviewers.                                                                                                                   |
+| nestjs-pino (or Nest Logger + JSON in prod)                            | Request id + user id on API logs.                                                                                                            |
 
 ### Database
 
@@ -148,10 +148,10 @@ None. Product `main_image` / `images[]` are HTTPS URLs in seed. User avatars: nu
 
 ### Third-party services
 
-| Service | Role | MVP config |
-| :--- | :--- | :--- |
-| Sentry Cloud (Developer) | RN JS + native crash, screen transactions; API exceptions | `enabled: !__DEV__`; `tracesSampleRate: 1.0` in production; `release` = app version |
-| PostHog Cloud | Events, identify, session replay, later flags | `host: https://us.i.posthog.com`; replay on; mask all inputs + images; password always masked |
+| Service                  | Role                                                      | MVP config                                                                                    |
+| :----------------------- | :-------------------------------------------------------- | :-------------------------------------------------------------------------------------------- |
+| Sentry Cloud (Developer) | RN JS + native crash, screen transactions; API exceptions | `enabled: !__DEV__`; `tracesSampleRate: 1.0` in production; `release` = app version           |
+| PostHog Cloud            | Events, identify, session replay, later flags             | `host: https://us.i.posthog.com`; replay on; mask all inputs + images; password always masked |
 
 Analytics traffic **does not** go through Nest. Changing PostHog to self-host later is a `host` config change only.
 
@@ -434,21 +434,21 @@ Envelope for every response:
 
 Errors: `data` is `null`, `code` from PRD appendix A, `message` is a client-safe Chinese string. **HTTP status and `code` are both required** — do not return HTTP 200 with a business error, and do not return Nest default bodies without this envelope. Clients key off `code`; axios refresh uses HTTP status **and** `code` as in the table.
 
-| `code` | HTTP | Client interceptor |
-| :--- | :--- | :--- |
-| `0` | 200 (201 only if you must; prefer 200 + envelope) | success |
-| `40001` | 400 | show `message` |
-| `40100` | 401 | single-flight refresh + one replay; **not** on `/auth/refresh` |
-| `40101` | 401 | no refresh; invalid token |
-| `40102` / `40103` | 401 | refresh endpoint only; `logoutLocal()`; never chain another refresh |
-| `40110` | 401 | no refresh; missing token on protected route |
-| `40201` | 400 | login/refresh: wrong password **or** banned; always copy `手机号或密码错误`; no refresh |
-| `40202` | 409 | register: phone taken |
-| `40301` | 403 | reserved; unused in MVP (banned users use `40201` / `40110`) |
-| `40401` | 404 | show `message` (IDOR looks like this, never `403`) |
-| `40901` / `40902` | 409 | stock / state dialogs |
-| `42900` | 429 | throttle copy |
-| `50000` | 500 (health DB down: 503) | retry / generic error |
+| `code`            | HTTP                                              | Client interceptor                                                                      |
+| :---------------- | :------------------------------------------------ | :-------------------------------------------------------------------------------------- |
+| `0`               | 200 (201 only if you must; prefer 200 + envelope) | success                                                                                 |
+| `40001`           | 400                                               | show `message`                                                                          |
+| `40100`           | 401                                               | single-flight refresh + one replay; **not** on `/auth/refresh`                          |
+| `40101`           | 401                                               | no refresh; invalid token                                                               |
+| `40102` / `40103` | 401                                               | refresh endpoint only; `logoutLocal()`; never chain another refresh                     |
+| `40110`           | 401                                               | no refresh; missing token on protected route                                            |
+| `40201`           | 400                                               | login/refresh: wrong password **or** banned; always copy `手机号或密码错误`; no refresh |
+| `40202`           | 409                                               | register: phone taken                                                                   |
+| `40301`           | 403                                               | reserved; unused in MVP (banned users use `40201` / `40110`)                            |
+| `40401`           | 404                                               | show `message` (IDOR looks like this, never `403`)                                      |
+| `40901` / `40902` | 409                                               | stock / state dialogs                                                                   |
+| `42900`           | 429                                               | throttle copy                                                                           |
+| `50000`           | 500 (health DB down: 503)                         | retry / generic error                                                                   |
 
 ValidationPipe, Throttler, and JWT guard **must** go through the same exception filter so the envelope is never skipped.
 
@@ -459,53 +459,64 @@ User object in auth payloads: `{ id, phoneMask, nickname, avatar }` where `phone
 
 ### Auth
 
-**POST `/api/v1/auth/register`** — public, throttled  
-- In: `{ phone, password, confirmPassword }` (`phone` CN `1[3-9]\d{9}`, password 6–20).  
-- Out: `{ accessToken, refreshToken, user }`.  
+**POST `/api/v1/auth/register`** — public, throttled
+
+- In: `{ phone, password, confirmPassword }` (`phone` CN `1[3-9]\d{9}`, password 6–20).
+- Out: `{ accessToken, refreshToken, user }`.
 - Errors: `40001` validation, `40202` phone taken, `42900`.
 
-**POST `/api/v1/auth/login`** — public, throttled  
-- In: `{ phone, password }`.  
-- Out: same as register.  
+**POST `/api/v1/auth/login`** — public, throttled
+
+- In: `{ phone, password }`.
+- Out: same as register.
 - Errors: `40201` (always this copy, never “user not found”; banned users use the same code), `42900`.
 
-**POST `/api/v1/auth/refresh`** — public, throttled  
-- In: `{ refreshToken }`.  
-- Out: `{ accessToken, refreshToken, user }`.  
+**POST `/api/v1/auth/refresh`** — public, throttled
+
+- In: `{ refreshToken }`.
+- Out: `{ accessToken, refreshToken, user }`.
 - Errors: `40102` revoked/reuse, `40103` expired/unknown, `40201` if user banned, `42900`.
 
-**POST `/api/v1/auth/logout`** — auth  
-- In: none (user from JWT).  
+**POST `/api/v1/auth/logout`** — auth
+
+- In: none (user from JWT).
 - Out: `{ ok: true }`. Revokes **all** refresh rows for that user.
 
 ### Users
 
-**GET `/api/v1/users/me`** — auth  
+**GET `/api/v1/users/me`** — auth
+
 - Out: `user`.
 
 ### Catalog
 
-**GET `/api/v1/home`** — public  
-- Query: `sort`, `page`, `pageSize`.  
+**GET `/api/v1/home`** — public
+
+- Query: `sort`, `page`, `pageSize`.
 - Out: product cards `{ id, name, price, originalPrice, mainImage, sales, stock }`.
 
-**GET `/api/v1/products`** — public  
-- Query: `keyword?`, `sort`, `page`, `pageSize`.  
+**GET `/api/v1/products`** — public
+
+- Query: `keyword?`, `sort`, `page`, `pageSize`.
 - Out: same cards plus `isFallback?: true` when keyword missed and server substituted recommendations.
 
-**GET `/api/v1/products/:id`** — public  
-- Out: card fields + `images[]`, `description`, `status`.  
+**GET `/api/v1/products/:id`** — public
+
+- Out: card fields + `images[]`, `description`, `status`.
 - Error: `40401` if missing or off-shelf (treat off-shelf as 404 for guests; logged-in detail of off-shelf still 404 for MVP simplicity).
 
 ### Cart (all auth, IDOR by `user_id`)
 
-**GET `/api/v1/cart`**  
+**GET `/api/v1/cart`**
+
 - Out: `{ items: [{ id, productId, name, image, price, quantity, selected, stock, invalid }], selectedAmount }`.
 
-**POST `/api/v1/cart`**  
+**POST `/api/v1/cart`**
+
 - In: `{ productId, quantity }`. Upsert. Error `40901` if `quantity > stock`, `40401` if product not on sale. Server clamps/rejects outside `1–99`.
 
-**PATCH `/api/v1/cart/:id`**  
+**PATCH `/api/v1/cart/:id`**
+
 - In: `{ quantity?, selected? }`. Same stock/qty rules as POST. Error `40401` if not owner. Invalid lines cannot raise quantity.
 
 **DELETE `/api/v1/cart/:id`** — owner only.
@@ -519,12 +530,14 @@ User object in auth payloads: `{ id, phoneMask, nickname, avatar }` where `phone
 
 ### Orders (all auth, IDOR)
 
-**POST `/api/v1/orders`**  
-- In: `{ addressId, fromCart: true }` **or** `{ addressId, items: [{ productId, quantity }] }` — mutually exclusive.  
-- Out: `{ id, orderNo, status, totalAmount, items, receiverSnapshot, createdAt }`.  
+**POST `/api/v1/orders`**
+
+- In: `{ addressId, fromCart: true }` **or** `{ addressId, items: [{ productId, quantity }] }` — mutually exclusive.
+- Out: `{ id, orderNo, status, totalAmount, items, receiverSnapshot, createdAt }`.
 - Errors: `40901` stock, `40401` address/product, `40001` empty items or both/neither line sources.
 
-**GET `/api/v1/orders`**  
+**GET `/api/v1/orders`**
+
 - Query: `status?` (`all` omit, or `0|1|2|3`), `page`, `pageSize`.
 
 **GET `/api/v1/orders/:id`** — header + items + snapshots.
@@ -535,7 +548,8 @@ User object in auth payloads: `{ id, phoneMask, nickname, avatar }` where `phone
 
 ### Health (SDLC; not in PRD, required for deploy)
 
-**GET `/api/v1/health`** — public  
+**GET `/api/v1/health`** — public
+
 - Out: `{ status: "ok", db: "up", uptimeSec }`. `db: "down"` → HTTP 503, `code` `50000`.
 
 ### Error codes to implement (from PRD)
@@ -570,14 +584,14 @@ Cold start: if SecureStore has a refresh token → **always** call `/auth/refres
 
 ### Loading / empty / error
 
-| Surface | Loading | Empty | Error |
-| :--- | :--- | :--- | :--- |
-| Home/search list | `ListSkeleton` | illustration + “去逛逛” | retry snackbar |
-| Search no hits | — | server already returns fallback; if fallback also empty, empty state | retry |
-| Cart | skeleton | empty + CTA Home | retry |
-| Orders | skeleton per tab | per-status copy | retry |
-| Checkout submit | button disabled + spinner | — | `40901` dialog, stay on page |
-| Auth forms | submit disabled | — | inline `40001`; toast `40201` |
+| Surface          | Loading                   | Empty                                                                | Error                         |
+| :--------------- | :------------------------ | :------------------------------------------------------------------- | :---------------------------- |
+| Home/search list | `ListSkeleton`            | illustration + “去逛逛”                                              | retry snackbar                |
+| Search no hits   | —                         | server already returns fallback; if fallback also empty, empty state | retry                         |
+| Cart             | skeleton                  | empty + CTA Home                                                     | retry                         |
+| Orders           | skeleton per tab          | per-status copy                                                      | retry                         |
+| Checkout submit  | button disabled + spinner | —                                                                    | `40901` dialog, stay on page  |
+| Auth forms       | submit disabled           | —                                                                    | inline `40001`; toast `40201` |
 
 No full-screen blocking loader for silent refresh.
 
@@ -702,23 +716,23 @@ Checkout with no addresses: empty state + CTA to AddressEdit; do not POST orders
 
 ## 11. Delivery Risks and Trade-Offs
 
-| Risk | Why it matters | Mitigation |
-| :--- | :--- | :--- |
-| Concurrent 401 refresh | Duplicate rotate → valid client holds a revoked refresh | Client single-flight + server rotate; interceptor tests **before** catalog screens |
-| Refresh 401 loop | `/auth/refresh` 401 treated as 40100 | Never refresh on that URL; Jest covers 40102 |
-| Oversell | Demo reviewers will parallel-tap buy | Conditional `stock >= n` inside a transaction; e2e with two concurrent POSTs |
-| Reuse false positive | Retry after timeout looks like theft | 60s grace: `40102` without family revoke |
-| 1-minute unpaid cancel | Live demo may lose the order while talking | Keep 1 min as specified; document it in README; TTL is env `ORDER_PAY_TIMEOUT_SEC=60` so a reviewer build can use 300 if needed **without changing product default** |
-| Two API replicas | Cron would fire twice | MVP: one replica; jobs still idempotent |
-| ATS / cleartext | Physical device cannot hit `http://LAN:3000` | Dev Client cleartext exception **or** HTTPS tunnel; document both |
-| `packages/shared` in Metro | Nest/class-validator pulled into RN | Shared package is types-only; Metro `watchFolders` |
-| PostHog CN network + data residency | Cloud is US/EU; may be slow or non-compliant later | Direct Cloud US host for demo; `host` config for self-host; no PII in events |
-| Expo Dev Client vs Expo Go | Sentry native / SecureStore need a custom client | README: `eas build --profile development` once per machine |
-| Physical device vs localhost | Phone cannot hit `localhost:3000` | `EXPO_PUBLIC_API_URL` + LAN IP or Cloudflare Tunnel |
-| Seed image hotlink | Broken pictures kill the waterfall demo | Prefer stable picsum ids or bundle a few images in the app as fallback URI |
-| LIKE search quality | `%` spam / slow table | Escape wildcards; 20–50 seed rows; no extra index gymnastics |
-| JWT in query logs | Reverse proxies may log Authorization | Disable verbose HTTP body logs on auth; pino redact `req.headers.authorization` |
-| Speed vs structure | Over-splitting services delays M1 | One Nest app, three RN folders (`screens`, `api`, `components`) until a second client exists |
+| Risk                                | Why it matters                                          | Mitigation                                                                                                                                                           |
+| :---------------------------------- | :------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Concurrent 401 refresh              | Duplicate rotate → valid client holds a revoked refresh | Client single-flight + server rotate; interceptor tests **before** catalog screens                                                                                   |
+| Refresh 401 loop                    | `/auth/refresh` 401 treated as 40100                    | Never refresh on that URL; Jest covers 40102                                                                                                                         |
+| Oversell                            | Demo reviewers will parallel-tap buy                    | Conditional `stock >= n` inside a transaction; e2e with two concurrent POSTs                                                                                         |
+| Reuse false positive                | Retry after timeout looks like theft                    | 60s grace: `40102` without family revoke                                                                                                                             |
+| 1-minute unpaid cancel              | Live demo may lose the order while talking              | Keep 1 min as specified; document it in README; TTL is env `ORDER_PAY_TIMEOUT_SEC=60` so a reviewer build can use 300 if needed **without changing product default** |
+| Two API replicas                    | Cron would fire twice                                   | MVP: one replica; jobs still idempotent                                                                                                                              |
+| ATS / cleartext                     | Physical device cannot hit `http://LAN:3000`            | Dev Client cleartext exception **or** HTTPS tunnel; document both                                                                                                    |
+| `packages/shared` in Metro          | Nest/class-validator pulled into RN                     | Shared package is types-only; Metro `watchFolders`                                                                                                                   |
+| PostHog CN network + data residency | Cloud is US/EU; may be slow or non-compliant later      | Direct Cloud US host for demo; `host` config for self-host; no PII in events                                                                                         |
+| Expo Dev Client vs Expo Go          | Sentry native / SecureStore need a custom client        | README: `eas build --profile development` once per machine                                                                                                           |
+| Physical device vs localhost        | Phone cannot hit `localhost:3000`                       | `EXPO_PUBLIC_API_URL` + LAN IP or Cloudflare Tunnel                                                                                                                  |
+| Seed image hotlink                  | Broken pictures kill the waterfall demo                 | Prefer stable picsum ids or bundle a few images in the app as fallback URI                                                                                           |
+| LIKE search quality                 | `%` spam / slow table                                   | Escape wildcards; 20–50 seed rows; no extra index gymnastics                                                                                                         |
+| JWT in query logs                   | Reverse proxies may log Authorization                   | Disable verbose HTTP body logs on auth; pino redact `req.headers.authorization`                                                                                      |
+| Speed vs structure                  | Over-splitting services delays M1                       | One Nest app, three RN folders (`screens`, `api`, `components`) until a second client exists                                                                         |
 
 ---
 
