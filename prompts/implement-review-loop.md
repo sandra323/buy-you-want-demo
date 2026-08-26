@@ -17,19 +17,27 @@
 不要做下一 Task，不要扩大范围。
 
 ## 角色分工
-1. **Implementer**（可写代码的子 agent）
+1. **Implementer**（可写代码的子 agent，如 generalPurpose）
    - 只实现当前 Task；对照 Acceptance criteria 自测
    - 不要改无关文件；不要重构；不要提交 git（除非我明确要求）
-2. **Reviewer**（只读评审）
-   - 优先用 bugbot 子 agent（Diff: uncommitted changes；若无未提交变更则用 branch changes）
-   - 若 bugbot 不可用：你自己做只读 review，对照 Acceptance criteria + build-spec 相关章节
+2. **Reviewer**（只读评审子 agent）
+   - 优先用 bugbot（Diff: uncommitted changes；若无未提交变更则用 branch changes）
+   - 若 bugbot 不可用：另开只读子 agent（如 explore / generalPurpose），prompt 写死「禁止改文件、禁止跑会改状态的命令」；对照 Acceptance criteria + build-spec 相关章节
+   - **禁止**编排者自己冒充 Reviewer
    - Reviewer **禁止改代码**；只输出 findings（按严重度：blocker / major / nit）
+
+## 子 agent 独立性（必须遵守）
+- Implementer 与 Reviewer **必须是两次独立的 Task 调用**（不同 agent id）。
+- **只**允许 `resume` Implementer（修 blocker/major 时）；**禁止** `resume` Reviewer；**禁止**把 Implementer 的 id 当作 Reviewer。
+- Reviewer **每轮新开**（尤其 bugbot 为单次、不支持 resume）。
+- Reviewer 的 prompt **只**给：仓库路径、Diff 类型、Task AC / 相关 build-spec 要点；**不得**包含 Implementer 的实现理由、自测话术、或「请确认已通过」。
+- 独立性指会话与角色隔离；二者可共享同一工作区（Reviewer 就是要看本轮 diff）。
 
 ## 循环（最多 3 轮）
 对每一轮：
 1. 派 Implementer：把 Task {{TASK_ID}} 的全文（Purpose / Scope / Notes / AC / Dependencies）贴进 prompt，并写明仓库路径与「只做这一 Task」。
 2. 等 Implementer 结束后，核对它声称完成的 AC（跑它提到的最小命令，例如 typecheck / 相关 test；不要空口相信）。
-3. 派 Reviewer 审本轮 diff。
+3. **新开** Reviewer 审本轮 diff（不要 resume 上一轮 Reviewer，也不要用 Implementer）。
 4. 判定：
    - 无 blocker、无 major，且 AC 全部可验证通过 → **PASS**，停止循环。
    - 有 blocker/major → 整理成「必须修复」清单，**resume 同一个 Implementer**（不要新开丢上下文），只修清单项；nit 可列但不强制。

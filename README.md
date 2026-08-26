@@ -20,7 +20,7 @@ C 端电商跨端 Demo：一套 TypeScript 代码覆盖 iOS / Android，跑通�
 
 ## 状态
 
-🚧 规格已评审，工程脚手架尚未落地。下列命令是目标用法，代码就位后即可按此执行。
+🚧 规格已评审。`apps/mobile` 已落地 Expo SDK 52 Dev Client；完整 `.env`、API Docker、ESLint 见后续 Task。下列命令是目标用法。
 
 ## 本地运行（目标）
 
@@ -28,10 +28,21 @@ C 端电商跨端 Demo：一套 TypeScript 代码覆盖 iOS / Android，跑通�
 
 ```bash
 pnpm install
-cp .env.example .env   # 填 JWT_SECRET、DSN 等
+cp .env.example .env   # 目前仅有 EXPO_PUBLIC_API_URL；JWT / DSN 等见 Task 1.6
 docker compose up      # MySQL + API（等待健康 → migrate → 可选 seed → 监听 :3000）
 pnpm --filter mobile start
 ```
+
+### Expo Dev Client
+
+`pnpm --filter mobile start` 只启动 Metro，不需要已有原生包。在模拟器或真机上跑 App 需要 **Dev Client**（不要用 Expo Go）：
+
+```bash
+# 完整 EAS 配置在里程碑 M10。每台机器首次可先打 development 包：
+eas build --profile development
+```
+
+本地预构建也可：`pnpm --filter mobile exec expo prebuild`，再 `expo run:ios` / `expo run:android`。
 
 API 热更新可对着 Compose 里的 MySQL 跑 `pnpm --filter api start:dev`。
 

@@ -7,7 +7,7 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "lint": "pnpm -r --if-present run lint",
-    "typecheck": "pnpm -r --if-present run typecheck",
+    "typecheck": "pnpm --filter @lightbuy/shared build && pnpm --filter api typecheck && pnpm --filter mobile typecheck",
     "test": "pnpm -r --if-present run test"
   }
 }

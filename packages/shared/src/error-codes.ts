@@ -1,0 +1,22 @@
+/**
+ * Business error codes (build-spec §7 / PRD appendix A).
+ * `FORBIDDEN_RESERVED` (40301) is reserved for a later permission model — unused in MVP handlers.
+ */
+export enum ErrorCode {
+  OK = 0,
+  VALIDATION = 40001,
+  UNAUTHORIZED_EXPIRED = 40100,
+  UNAUTHORIZED_INVALID = 40101,
+  REFRESH_REVOKED = 40102,
+  REFRESH_EXPIRED = 40103,
+  UNAUTHORIZED_MISSING = 40110,
+  AUTH_CREDENTIALS = 40201,
+  PHONE_TAKEN = 40202,
+  /** Reserved; unused in MVP (banned users use AUTH_CREDENTIALS / UNAUTHORIZED_MISSING). */
+  FORBIDDEN_RESERVED = 40301,
+  NOT_FOUND = 40401,
+  CONFLICT_STOCK = 40901,
+  CONFLICT_STATE = 40902,
+  RATE_LIMITED = 42900,
+  INTERNAL = 50000,
+}
