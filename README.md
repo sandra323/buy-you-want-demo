@@ -46,6 +46,8 @@ eas build --profile development
 
 API 热更新可对着 Compose 里的 MySQL 跑 `pnpm --filter api start:dev`。
 
+API e2e 需要 Compose MySQL，且只用独立库 `lightbuy_test`（不会清空 demo 的 `lightbuy`）：`pnpm --filter api test:e2e`。
+
 | 客户端         | `EXPO_PUBLIC_API_URL`                                                                                                        |
 | :------------- | :--------------------------------------------------------------------------------------------------------------------------- |
 | iOS 模拟器     | `http://localhost:3000`                                                                                                      |
