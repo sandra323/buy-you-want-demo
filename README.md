@@ -20,7 +20,7 @@ C 端电商跨端 Demo：一套 TypeScript 代码覆盖 iOS / Android，跑通�
 
 ## 状态
 
-🚧 规格已评审。`apps/mobile` 已落地 Expo SDK 52 Dev Client；完整 `.env`、API Docker、ESLint 见后续 Task。下列命令是目标用法。
+🚧 规格已评审。M1 脚手架可用：`.env.example`、Compose MySQL + API、ESLint/CI。业务与 Health 200 见后续 Task。
 
 ## 本地运行（目标）
 
@@ -28,7 +28,7 @@ C 端电商跨端 Demo：一套 TypeScript 代码覆盖 iOS / Android，跑通�
 
 ```bash
 pnpm install
-cp .env.example .env   # 目前仅有 EXPO_PUBLIC_API_URL；JWT / DSN 等见 Task 1.6
+cp .env.example .env   # JWT、DATABASE_URL、Sentry、SEED_ON_BOOT 等
 docker compose up      # MySQL + API（等待健康 → migrate → 可选 seed → 监听 :3000）
 pnpm --filter mobile start
 ```

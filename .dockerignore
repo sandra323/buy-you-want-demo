@@ -1,0 +1,19 @@
+.git
+.github
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+**/coverage
+**/.turbo
+**/.expo
+**/android
+**/ios
+# Keep mobile package.json so pnpm --frozen-lockfile can resolve the workspace.
+apps/mobile/**
+!apps/mobile/package.json
+*.md
+!apps/api/README.md
+.DS_Store

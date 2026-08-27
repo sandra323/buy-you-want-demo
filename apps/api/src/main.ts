@@ -1,8 +1,10 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { validateBootEnv } from './database/validate-env';
 
 async function bootstrap() {
+  validateBootEnv();
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1');
   const port = Number(process.env.PORT) || 3000;
