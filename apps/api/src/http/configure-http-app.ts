@@ -1,7 +1,9 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
+import { API_GLOBAL_PREFIX } from './api-prefix';
+import { setupSwagger } from './setup-swagger';
 
-export const API_GLOBAL_PREFIX = 'api/v1';
+export { API_GLOBAL_PREFIX } from './api-prefix';
 
 export function createValidationPipe(): ValidationPipe {
   return new ValidationPipe({
@@ -15,5 +17,6 @@ export function createValidationPipe(): ValidationPipe {
 export function configureHttpApp(app: INestApplication): INestApplication {
   app.setGlobalPrefix(API_GLOBAL_PREFIX);
   app.useLogger(app.get(Logger));
+  setupSwagger(app);
   return app;
 }

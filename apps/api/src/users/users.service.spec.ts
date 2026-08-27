@@ -1,7 +1,7 @@
 import { ErrorCode } from '@lightbuy/shared';
 import { QueryFailedError } from 'typeorm';
 import { AppException } from '../http/app.exception';
-import { USER_STATUS_ACTIVE } from './user.entity';
+import { USER_STATUS_ACTIVE, USER_STATUS_BANNED } from './user.entity';
 import { UsersService } from './users.service';
 
 describe('UsersService', () => {
@@ -73,6 +73,52 @@ describe('UsersService', () => {
     } catch (e) {
       expect(e).toBeInstanceOf(AppException);
       expect((e as AppException).errorCode).toBe(ErrorCode.PHONE_TAKEN);
+    }
+  });
+
+  it('getMe returns masked phone from the database row', async () => {
+    findOne.mockResolvedValue({
+      id: 'u1',
+      phone: '13800000000',
+      nickname: '用户0000',
+      avatar: null,
+      status: USER_STATUS_ACTIVE,
+    });
+
+    await expect(service.getMe('u1')).resolves.toEqual({
+      id: 'u1',
+      phoneMask: '138****0000',
+      nickname: '用户0000',
+      avatar: '',
+    });
+    expect(findOne).toHaveBeenCalledWith({ where: { id: 'u1' } });
+  });
+
+  it('getMe treats missing or banned users as 40110', async () => {
+    findOne.mockResolvedValue(null);
+    try {
+      await service.getMe('missing');
+      fail('expected throw');
+    } catch (e) {
+      expect((e as AppException).errorCode).toBe(
+        ErrorCode.UNAUTHORIZED_MISSING,
+      );
+    }
+
+    findOne.mockResolvedValue({
+      id: 'u1',
+      phone: '13800000000',
+      nickname: 'x',
+      avatar: null,
+      status: USER_STATUS_BANNED,
+    });
+    try {
+      await service.getMe('u1');
+      fail('expected throw');
+    } catch (e) {
+      expect((e as AppException).errorCode).toBe(
+        ErrorCode.UNAUTHORIZED_MISSING,
+      );
     }
   });
 });

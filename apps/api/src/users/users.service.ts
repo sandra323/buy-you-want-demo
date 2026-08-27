@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ErrorCode } from '@lightbuy/shared';
 import { Repository } from 'typeorm';
+import { toPublicUser } from '../auth/public-user';
 import { isMysqlDuplicateError } from '../database/is-mysql-duplicate';
 import { AppException } from '../http/app.exception';
-import { USER_STATUS_ACTIVE, User } from './user.entity';
+import { USER_STATUS_ACTIVE, USER_STATUS_BANNED, User } from './user.entity';
 
 @Injectable()
 export class UsersService {
@@ -15,6 +16,19 @@ export class UsersService {
 
   findByPhone(phone: string): Promise<User | null> {
     return this.users.findOne({ where: { phone } });
+  }
+
+  findById(id: string): Promise<User | null> {
+    return this.users.findOne({ where: { id } });
+  }
+
+  /** 从数据库组公开资料，不信任 JWT 里的 nickname/phone。 */
+  async getMe(userId: string) {
+    const user = await this.findById(userId);
+    if (!user || user.status === USER_STATUS_BANNED) {
+      throw new AppException(ErrorCode.UNAUTHORIZED_MISSING);
+    }
+    return toPublicUser(user);
   }
 
   async create(input: {
