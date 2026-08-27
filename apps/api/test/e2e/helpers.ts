@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { configureHttpApp } from '../../src/http/configure-http-app';
 import mysql from 'mysql2/promise';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
@@ -268,7 +269,7 @@ export async function createTestApp(): Promise<TestAppHandles> {
   }).compile();
 
   const app = moduleRef.createNestApplication();
-  app.setGlobalPrefix('api/v1');
+  configureHttpApp(app);
   await app.init();
 
   const dataSource = app.get(DataSource);

@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { ErrorCode } from '@lightbuy/shared';
 import request from 'supertest';
 import { parseDatabaseUrl } from '../../src/database/parse-database-url';
 import {
@@ -85,16 +86,19 @@ describe('API e2e harness', () => {
 
     const prefixed = await request(server).get('/api/v1/no-such-route');
     expect(prefixed.status).toBe(404);
-    expect(prefixed.body).toMatchObject({
-      statusCode: 404,
-      error: 'Not Found',
-      message: expect.stringContaining('/api/v1/no-such-route'),
+    expect(prefixed.body).toEqual({
+      code: ErrorCode.NOT_FOUND,
+      message: '资源不存在',
+      data: null,
     });
 
     const unprefixed = await request(server).get('/no-such-route');
     expect(unprefixed.status).toBe(404);
-    expect(unprefixed.body.message).toContain('/no-such-route');
-    expect(unprefixed.body.message).not.toContain('/api/v1');
+    expect(unprefixed.body).toEqual({
+      code: ErrorCode.NOT_FOUND,
+      message: '资源不存在',
+      data: null,
+    });
   });
 
   it('resetDb clears users and orders so suites cannot pollute each other', async () => {
