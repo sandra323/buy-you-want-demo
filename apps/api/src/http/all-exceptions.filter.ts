@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { SentryExceptionCaptured } from '@sentry/nestjs';
 import { ErrorCode, type ApiResponse } from '@lightbuy/shared';
 import { AppException } from './app.exception';
 import { CLIENT_MESSAGE_BY_CODE } from './client-messages';
@@ -22,6 +23,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
 
+  @SentryExceptionCaptured()
   catch(exception: unknown, host: ArgumentsHost): void {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();

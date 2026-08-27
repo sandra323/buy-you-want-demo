@@ -146,6 +146,8 @@ export function applyE2eEnv(): void {
 
   process.env.NODE_ENV = 'test';
   delete process.env.TYPEORM_SYNC;
+  // Never send e2e failures to Sentry Cloud (even if a local .env has a DSN).
+  delete process.env.SENTRY_DSN;
 
   process.env.DATABASE_URL = resolveTestDatabaseUrl();
 

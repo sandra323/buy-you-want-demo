@@ -3,6 +3,7 @@ import { validateBootEnv } from './validate-env';
 describe('validateBootEnv', () => {
   const originalDatabaseUrl = process.env.DATABASE_URL;
   const originalJwtSecret = process.env.JWT_SECRET;
+  const originalSentryDsn = process.env.SENTRY_DSN;
   let exitCode: number | undefined;
 
   beforeEach(() => {
@@ -28,6 +29,11 @@ describe('validateBootEnv', () => {
     } else {
       process.env.JWT_SECRET = originalJwtSecret;
     }
+    if (originalSentryDsn === undefined) {
+      delete process.env.SENTRY_DSN;
+    } else {
+      process.env.SENTRY_DSN = originalSentryDsn;
+    }
   });
 
   it('exits non-zero when JWT_SECRET is empty', () => {
@@ -51,10 +57,11 @@ describe('validateBootEnv', () => {
     expect(exitCode).toBe(1);
   });
 
-  it('passes when required env vars are set', () => {
+  it('passes when required env vars are set even if SENTRY_DSN is unset', () => {
     process.env.DATABASE_URL =
       'mysql://lightbuy:lightbuy@localhost:3306/lightbuy';
     process.env.JWT_SECRET = 'change-me-to-at-least-32-bytes-long-secret';
+    delete process.env.SENTRY_DSN;
 
     expect(() => validateBootEnv()).not.toThrow();
   });
