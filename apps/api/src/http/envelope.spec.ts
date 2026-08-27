@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   INestApplication,
   Post,
   UnauthorizedException,
@@ -47,6 +49,18 @@ class EnvelopeProbeController {
   @Get('unauthorized')
   unauthorized() {
     throw new UnauthorizedException();
+  }
+
+  @Get('unavailable')
+  unavailable() {
+    throw new HttpException(
+      {
+        code: ErrorCode.INTERNAL,
+        message: '服务器内部错误',
+        data: { status: 'error', db: 'down', uptimeSec: 1 },
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
   }
 }
 
@@ -137,6 +151,18 @@ describe('API envelope', () => {
       code: ErrorCode.UNAUTHORIZED_MISSING,
       message: '未登录',
       data: null,
+    });
+  });
+
+  it('preserves envelope-shaped HttpException data (health DB down)', async () => {
+    const res = await request(app.getHttpServer()).get(
+      '/envelope-probe/unavailable',
+    );
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({
+      code: ErrorCode.INTERNAL,
+      message: '服务器内部错误',
+      data: { status: 'error', db: 'down', uptimeSec: 1 },
     });
   });
 });

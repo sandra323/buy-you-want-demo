@@ -7,6 +7,7 @@ import {
 import { ErrorCode, type ApiResponse } from '@lightbuy/shared';
 import { Observable, map } from 'rxjs';
 import { CLIENT_MESSAGE_BY_CODE } from './client-messages';
+import { isApiResponse } from './is-api-response';
 
 @Injectable()
 export class TransformInterceptor implements NestInterceptor {
@@ -27,11 +28,4 @@ export class TransformInterceptor implements NestInterceptor {
       }),
     );
   }
-}
-
-function isApiResponse<T>(value: unknown): value is ApiResponse<T> {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  return 'code' in value && 'message' in value && 'data' in value;
 }

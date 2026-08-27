@@ -20,7 +20,7 @@ C 端电商跨端 Demo：一套 TypeScript 代码覆盖 iOS / Android，跑通�
 
 ## 状态
 
-🚧 规格已评审。M1 脚手架可用：`.env.example`、Compose MySQL + API、ESLint/CI。业务与 Health 200 见后续 Task。
+🚧 规格已评审。M1 脚手架可用：`.env.example`、Compose MySQL + API、ESLint/CI。`GET /api/v1/health` 已接入；Auth 与业务 API 见后续 Task。
 
 ## 本地运行（目标）
 

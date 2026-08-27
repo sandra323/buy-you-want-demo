@@ -81,6 +81,43 @@ describe('API e2e harness', () => {
     expect(handles.dataSource.options.synchronize).toBe(false);
   });
 
+  it('GET /api/v1/health returns HTTP 200 and envelope with db up', async () => {
+    const res = await request(handles.app.getHttpServer()).get('/api/v1/health');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      code: ErrorCode.OK,
+      message: 'ok',
+      data: {
+        status: 'ok',
+        db: 'up',
+      },
+    });
+    expect(typeof res.body.data.uptimeSec).toBe('number');
+    expect(res.body.data.uptimeSec).toBeGreaterThanOrEqual(0);
+  });
+
+  it('GET /api/v1/health returns HTTP 503 and code 50000 when db ping fails', async () => {
+    const query = jest
+      .spyOn(handles.dataSource, 'query')
+      .mockRejectedValue(new Error('ECONNREFUSED'));
+    try {
+      const res = await request(handles.app.getHttpServer()).get(
+        '/api/v1/health',
+      );
+      expect(res.status).toBe(503);
+      expect(res.body).toMatchObject({
+        code: ErrorCode.INTERNAL,
+        message: '服务器内部错误',
+        data: {
+          status: 'error',
+          db: 'down',
+        },
+      });
+    } finally {
+      query.mockRestore();
+    }
+  });
+
   it('responds over HTTP with the api/v1 global prefix', async () => {
     const server = handles.app.getHttpServer();
 

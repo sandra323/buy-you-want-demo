@@ -6,7 +6,7 @@ import { configureHttpApp } from './http/configure-http-app';
 
 async function bootstrap() {
   validateBootEnv();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
   configureHttpApp(app);
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port);

@@ -14,6 +14,7 @@ import {
   errorCodeFromHttpStatus,
   httpStatusForCode,
 } from './http-status-for-code';
+import { isApiResponse } from './is-api-response';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -32,7 +33,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   private toEnvelope(exception: unknown): {
     status: number;
-    body: ApiResponse<null>;
+    body: ApiResponse<unknown>;
   } {
     if (exception instanceof AppException) {
       return {
@@ -47,6 +48,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
+      const response = exception.getResponse();
+      if (isApiResponse(response)) {
+        return { status, body: response };
+      }
+
       const code = isValidationHttpException(exception)
         ? ErrorCode.VALIDATION
         : errorCodeFromHttpStatus(status);

@@ -268,7 +268,7 @@ export async function createTestApp(): Promise<TestAppHandles> {
     imports: [AppModule],
   }).compile();
 
-  const app = moduleRef.createNestApplication();
+  const app = moduleRef.createNestApplication({ bufferLogs: true });
   configureHttpApp(app);
   await app.init();
 
