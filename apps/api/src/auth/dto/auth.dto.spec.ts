@@ -1,5 +1,5 @@
 import { validate } from 'class-validator';
-import { LoginDto, RegisterDto } from './auth.dto';
+import { LoginDto, RefreshDto, RegisterDto } from './auth.dto';
 
 function registerDto(overrides: Partial<RegisterDto> = {}): RegisterDto {
   return Object.assign(new RegisterDto(), {
@@ -48,5 +48,11 @@ describe('auth DTOs', () => {
     });
     const errors = await validate(dto);
     expect(errors.some((e) => e.property === 'phone')).toBe(true);
+  });
+
+  it('refresh requires a token string', async () => {
+    const empty = Object.assign(new RefreshDto(), { refreshToken: '' });
+    const errors = await validate(empty);
+    expect(errors.some((e) => e.property === 'refreshToken')).toBe(true);
   });
 });
