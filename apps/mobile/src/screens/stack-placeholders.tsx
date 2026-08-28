@@ -1,9 +1,5 @@
 import { PlaceholderScreen } from './PlaceholderScreen';
 
-export function SearchScreen() {
-  return <PlaceholderScreen body="搜索占位（M8 接目录）" />;
-}
-
 export function ProductDetailScreen() {
   return <PlaceholderScreen body="商品详情占位。返回可回到首页 Tab。" />;
 }

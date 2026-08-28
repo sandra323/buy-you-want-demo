@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
+import { SearchScreen } from '../screens/SearchScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { UiKitPreviewScreen } from '../screens/UiKitPreviewScreen';
 import {
@@ -11,7 +12,6 @@ import {
   OrderDetailScreen,
   OrderListScreen,
   ProductDetailScreen,
-  SearchScreen,
 } from '../screens/stack-placeholders';
 import { tokens } from '../theme';
 import { TabNavigator } from './TabNavigator';
