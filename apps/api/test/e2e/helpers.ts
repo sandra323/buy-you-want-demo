@@ -20,8 +20,7 @@ const DEMO_DATABASE_NAME = 'lightbuy';
 const DEFAULT_TEST_DATABASE_NAME = 'lightbuy_test';
 const DEFAULT_TEST_DATABASE_URL =
   'mysql://lightbuy:lightbuy@localhost:3306/lightbuy_test';
-const DEFAULT_TEST_JWT_SECRET =
-  'e2e-test-jwt-secret-not-for-production-use!!';
+const DEFAULT_TEST_JWT_SECRET = 'e2e-test-jwt-secret-not-for-production-use!!';
 const TYPEORM_MIGRATIONS_TABLE = 'migrations';
 
 const IDENTIFIER_RE = /^[A-Za-z0-9_]+$/;
@@ -231,7 +230,8 @@ async function ensureTestDatabaseExists(
 
 /** Same DataSource entry as `scripts/migrate.js` / TypeORM CLI. */
 async function runMigrations(): Promise<void> {
-  const { default: dataSource } = await import('../../src/database/data-source');
+  const { default: dataSource } =
+    await import('../../src/database/data-source');
   await dataSource.initialize();
   try {
     await dataSource.runMigrations();

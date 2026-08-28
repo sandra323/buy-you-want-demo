@@ -1,5 +1,9 @@
 import { ErrorCode } from '@lightbuy/shared';
-import { JsonWebTokenError, NotBeforeError, TokenExpiredError } from 'jsonwebtoken';
+import {
+  JsonWebTokenError,
+  NotBeforeError,
+  TokenExpiredError,
+} from 'jsonwebtoken';
 import { AppException } from '../http/app.exception';
 import { throwForJwtAuthFailure } from './map-jwt-auth-failure';
 
@@ -18,7 +22,9 @@ describe('throwForJwtAuthFailure', () => {
       fail('expected throw');
     } catch (e) {
       expect(e).toBeInstanceOf(AppException);
-      expect((e as AppException).errorCode).toBe(ErrorCode.UNAUTHORIZED_EXPIRED);
+      expect((e as AppException).errorCode).toBe(
+        ErrorCode.UNAUTHORIZED_EXPIRED,
+      );
     }
   });
 
@@ -28,7 +34,9 @@ describe('throwForJwtAuthFailure', () => {
       fail('expected throw');
     } catch (e) {
       expect(e).toBeInstanceOf(AppException);
-      expect((e as AppException).errorCode).toBe(ErrorCode.UNAUTHORIZED_INVALID);
+      expect((e as AppException).errorCode).toBe(
+        ErrorCode.UNAUTHORIZED_INVALID,
+      );
     }
   });
 
@@ -41,7 +49,9 @@ describe('throwForJwtAuthFailure', () => {
       fail('expected throw');
     } catch (e) {
       expect(e).toBeInstanceOf(AppException);
-      expect((e as AppException).errorCode).toBe(ErrorCode.UNAUTHORIZED_INVALID);
+      expect((e as AppException).errorCode).toBe(
+        ErrorCode.UNAUTHORIZED_INVALID,
+      );
     }
   });
 
@@ -51,7 +61,9 @@ describe('throwForJwtAuthFailure', () => {
       fail('expected throw');
     } catch (e) {
       expect(e).toBeInstanceOf(AppException);
-      expect((e as AppException).errorCode).toBe(ErrorCode.UNAUTHORIZED_MISSING);
+      expect((e as AppException).errorCode).toBe(
+        ErrorCode.UNAUTHORIZED_MISSING,
+      );
     }
   });
 });

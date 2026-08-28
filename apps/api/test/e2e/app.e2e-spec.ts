@@ -82,7 +82,9 @@ describe('API e2e harness', () => {
   });
 
   it('GET /api/v1/health returns HTTP 200 and envelope with db up', async () => {
-    const res = await request(handles.app.getHttpServer()).get('/api/v1/health');
+    const res = await request(handles.app.getHttpServer()).get(
+      '/api/v1/health',
+    );
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       code: ErrorCode.OK,

@@ -39,8 +39,12 @@ describe('JwtStrategy', () => {
       fail('expected throw');
     } catch (e) {
       expect(e).toBeInstanceOf(AppException);
-      expect((e as AppException).errorCode).toBe(ErrorCode.UNAUTHORIZED_MISSING);
-      expect((e as AppException).errorCode).not.toBe(ErrorCode.FORBIDDEN_RESERVED);
+      expect((e as AppException).errorCode).toBe(
+        ErrorCode.UNAUTHORIZED_MISSING,
+      );
+      expect((e as AppException).errorCode).not.toBe(
+        ErrorCode.FORBIDDEN_RESERVED,
+      );
     }
   });
 

@@ -25,7 +25,10 @@ export function serializeRequest(req: {
   };
 }
 
-export function requestIdFrom(req: IncomingMessage, res: ServerResponse): string {
+export function requestIdFrom(
+  req: IncomingMessage,
+  res: ServerResponse,
+): string {
   const header = req.headers['x-request-id'];
   const id =
     (typeof header === 'string' && header.trim()) ||
@@ -40,8 +43,9 @@ function pathOnly(url?: string): string | undefined {
 }
 
 function userIdFrom(req: IncomingMessage): string | undefined {
-  const user = (req as IncomingMessage & { user?: { id?: string; sub?: string } })
-    .user;
+  const user = (
+    req as IncomingMessage & { user?: { id?: string; sub?: string } }
+  ).user;
   const id = user?.id ?? user?.sub;
   return id || undefined;
 }

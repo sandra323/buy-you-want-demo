@@ -12,7 +12,10 @@ const fs = require('fs');
 const path = require('path');
 
 async function loadDataSourceAndSeed() {
-  const distDataSource = path.join(__dirname, '../dist/database/data-source.js');
+  const distDataSource = path.join(
+    __dirname,
+    '../dist/database/data-source.js',
+  );
   const distSeed = path.join(__dirname, '../dist/database/seed.js');
 
   if (fs.existsSync(distDataSource) && fs.existsSync(distSeed)) {

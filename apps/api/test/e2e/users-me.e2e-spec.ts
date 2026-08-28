@@ -3,11 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ErrorCode } from '@lightbuy/shared';
 import request from 'supertest';
 import { swaggerJsonPath, swaggerUiPath } from '../../src/http/setup-swagger';
-import {
-  createTestApp,
-  resetDb,
-  type TestAppHandles,
-} from './helpers';
+import { createTestApp, resetDb, type TestAppHandles } from './helpers';
 
 describe('GET /users/me and Swagger (Task 3.7)', () => {
   let handles: TestAppHandles;

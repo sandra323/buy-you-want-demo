@@ -1,4 +1,5 @@
-# Quality gates for PRs. Extend with API e2e + MySQL (Task 3.9) and mobile Jest (Task 10.4).
+# Quality gates for PRs.
+# Mobile Jest lands in Task 10.4 — do not add `pnpm --filter mobile test` here yet.
 name: CI
 
 on:
@@ -12,8 +13,32 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, format, typecheck, test
+    name: Lint, format, typecheck, API unit + e2e
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: lightbuy_test
+          MYSQL_USER: lightbuy
+          MYSQL_PASSWORD: lightbuy
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+          --health-start-period=20s
+
+    env:
+      JWT_SECRET: ci-test-jwt-secret-not-for-production-use!!
+      DATABASE_URL: mysql://lightbuy:lightbuy@127.0.0.1:3306/lightbuy_test
+      TEST_DATABASE_URL: mysql://lightbuy:lightbuy@127.0.0.1:3306/lightbuy_test
+      MYSQL_ROOT_PASSWORD: root
+      NODE_ENV: test
 
     steps:
       - name: Checkout
@@ -39,8 +64,11 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
-      - name: Typecheck
+      - name: Typecheck (shared build first)
         run: pnpm typecheck
 
-      - name: Test
+      - name: Unit tests
         run: pnpm test
+
+      - name: API e2e (auth suite included)
+        run: pnpm --filter api test:e2e

@@ -11,15 +11,10 @@ if (args.length === 0) {
   process.exit(1);
 }
 
-const dataSourcePath = path.join(
-  __dirname,
-  '../src/database/data-source.ts',
-);
+const dataSourcePath = path.join(__dirname, '../src/database/data-source.ts');
 
 const result = spawnSync(
-  process.platform === 'win32'
-    ? 'npx.cmd'
-    : 'npx',
+  process.platform === 'win32' ? 'npx.cmd' : 'npx',
   [
     'typeorm-ts-node-commonjs',
     'migration:generate',
