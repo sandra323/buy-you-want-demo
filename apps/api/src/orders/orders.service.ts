@@ -305,10 +305,17 @@ export class OrdersService {
     dto: CreateOrderDto,
   ): Promise<ResolvedLine[]> {
     if (dto.fromCart === true) {
-      const cartRows = await em.find(CartItem, {
-        where: { userId, selected: true },
-        order: { createdAt: 'ASC', id: 'ASC' },
-      });
+      // FOR UPDATE：串行同一用户的 fromCart，避免两笔并发都读到同一批已选行后各下一单。
+      const cartRows = await em
+        .createQueryBuilder(CartItem, 'c')
+        .setLock('pessimistic_write')
+        .where('c.userId = :userId AND c.selected = :selected', {
+          userId,
+          selected: true,
+        })
+        .orderBy('c.createdAt', 'ASC')
+        .addOrderBy('c.id', 'ASC')
+        .getMany();
       if (cartRows.length === 0) {
         throw new AppException(ErrorCode.VALIDATION);
       }

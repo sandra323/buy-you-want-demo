@@ -181,6 +181,52 @@ describe('orders API (Tasks 5.3–5.5)', () => {
     expect(Number(orderCount[0].n)).toBe(1);
   });
 
+  it('concurrent fromCart with ample stock creates one order', async () => {
+    const user = await register('13800003008');
+    const auth = { Authorization: `Bearer ${user.accessToken}` };
+    const productId = await insertProduct(handles.dataSource, { stock: 10 });
+    const addressId = await createAddress(user.accessToken);
+
+    await http().post('/api/v1/cart').set(auth).send({ productId, quantity: 1 });
+
+    const [a, b] = await Promise.all([
+      http().post('/api/v1/orders').set(auth).send({ addressId, fromCart: true }),
+      http().post('/api/v1/orders').set(auth).send({ addressId, fromCart: true }),
+    ]);
+
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([200, 400]);
+    const codes = [a.body.code, b.body.code].sort((x, y) => x - y);
+    expect(codes).toEqual([ErrorCode.OK, ErrorCode.VALIDATION]);
+    expect(await stockOf(productId)).toBe(9);
+
+    const orderCount = (await handles.dataSource.query(
+      'SELECT COUNT(*) AS n FROM orders',
+    )) as Array<{ n: number | string }>;
+    expect(Number(orderCount[0].n)).toBe(1);
+
+    const cart = await http().get('/api/v1/cart').set(auth);
+    expect(cart.body.data.items).toHaveLength(0);
+  });
+
+  it('cannot create an order with another user addressId', async () => {
+    const alice = await register('13800003009');
+    const bob = await register('13800003010');
+    const productId = await insertProduct(handles.dataSource, { stock: 2 });
+    const aliceAddressId = await createAddress(alice.accessToken);
+
+    const stolen = await http()
+      .post('/api/v1/orders')
+      .set('Authorization', `Bearer ${bob.accessToken}`)
+      .send({
+        addressId: aliceAddressId,
+        items: [{ productId, quantity: 1 }],
+      });
+    expect(stolen.status).toBe(404);
+    expect(stolen.body.code).toBe(ErrorCode.NOT_FOUND);
+    expect(await stockOf(productId)).toBe(2);
+  });
+
   it('cancel pending restocks; pay vs cancel race yields one 40902', async () => {
     const user = await register('13800003004');
     const auth = { Authorization: `Bearer ${user.accessToken}` };
