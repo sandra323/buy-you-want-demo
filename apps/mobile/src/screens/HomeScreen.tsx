@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   View,
@@ -10,95 +12,241 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ProductSort } from '@lightbuy/shared';
-import { Text } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { ProductCard as ProductCardData } from '@lightbuy/shared';
+import { Snackbar, Text } from 'react-native-paper';
 
-import { ProductCard, QtyStepper, SortBar } from '../components';
+import { getHome } from '../api/catalog';
+import {
+  EmptyState,
+  ListSkeleton,
+  ProductCard,
+  SortBar,
+  estimateProductCardHeight,
+} from '../components';
 import type { RootStackParamList, TabParamList } from '../navigation/types';
+import { useCatalogFiltersStore } from '../store/catalog-filters';
 import { tokens } from '../theme';
+import { getImageAspectRatio } from '../utils/image-aspect-ratio';
+import { distributeWaterfallColumns } from '../utils/waterfall-columns';
 
 type HomeNav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
 
-const DEMO_PRODUCT = {
-  id: 'demo-1',
-  name: '占位商品（M8 接目录）',
-  price: 99,
-  originalPrice: 129,
-  mainImage: 'https://picsum.photos/id/20/400/440',
-  sales: 128,
-  stock: 10,
-};
-
-const LINKS: { label: string; onPress: (nav: HomeNav) => void }[] = [
-  { label: '搜索', onPress: (nav) => nav.navigate('Search') },
-  {
-    label: '商品详情',
-    onPress: (nav) => nav.navigate('ProductDetail', { productId: 'demo-1' }),
-  },
-  { label: '结算', onPress: (nav) => nav.navigate('Checkout') },
-  { label: '订单列表', onPress: (nav) => nav.navigate('OrderList') },
-  {
-    label: '订单详情',
-    onPress: (nav) => nav.navigate('OrderDetail', { orderId: 'demo-order' }),
-  },
-  { label: '地址列表', onPress: (nav) => nav.navigate('AddressList') },
-  { label: '地址编辑', onPress: (nav) => nav.navigate('AddressEdit', {}) },
-  { label: '登录', onPress: (nav) => nav.navigate('Login') },
-  { label: '注册', onPress: (nav) => nav.navigate('Register') },
-  { label: '设置', onPress: (nav) => nav.navigate('Settings') },
-  { label: '组件预览', onPress: (nav) => nav.navigate('UiKitPreview') },
-];
-
 export function HomeScreen() {
   const navigation = useNavigation<HomeNav>();
   const { width } = useWindowDimensions();
-  const [sort, setSort] = useState(ProductSort.Comprehensive);
-  const [qty, setQty] = useState(1);
+  const sort = useCatalogFiltersStore((s) => s.sort);
+  const setSort = useCatalogFiltersStore((s) => s.setSort);
+
+  const [items, setItems] = useState<ProductCardData[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [layoutVersion, setLayoutVersion] = useState(0);
+
+  const requestIdRef = useRef(0);
+  const loadingMoreRef = useRef(false);
+
   const cardWidth = Math.floor(
     (width - tokens.space.lg * 2 - tokens.space.md) / 2,
   );
+  const hasMore = items.length < total;
+
+  const bumpLayout = useCallback(() => {
+    setLayoutVersion((v) => v + 1);
+  }, []);
+
+  const loadPage = useCallback(
+    async (nextPage: number, mode: 'initial' | 'refresh' | 'more') => {
+      const requestId = ++requestIdRef.current;
+      if (mode === 'initial') {
+        setIsInitialLoading(true);
+      } else if (mode === 'refresh') {
+        setIsRefreshing(true);
+      } else {
+        setIsLoadingMore(true);
+        loadingMoreRef.current = true;
+      }
+
+      try {
+        const data = await getHome({ sort, page: nextPage });
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+        setErrorVisible(false);
+        setTotal(data.total);
+        setPage(data.page);
+        setItems((prev) => {
+          if (mode === 'more' && nextPage > 1) {
+            const seen = new Set(prev.map((item) => item.id));
+            const merged = [...prev];
+            for (const item of data.items) {
+              if (!seen.has(item.id)) {
+                merged.push(item);
+              }
+            }
+            return merged;
+          }
+          return data.items;
+        });
+      } catch {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+        setErrorVisible(true);
+      } finally {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+        setIsInitialLoading(false);
+        setIsRefreshing(false);
+        setIsLoadingMore(false);
+        loadingMoreRef.current = false;
+      }
+    },
+    [sort],
+  );
+
+  useEffect(() => {
+    setItems([]);
+    setPage(1);
+    setTotal(0);
+    void loadPage(1, 'initial');
+  }, [sort, loadPage]);
+
+  const handleRefresh = useCallback(() => {
+    void loadPage(1, 'refresh');
+  }, [loadPage]);
+
+  const handleRetry = useCallback(() => {
+    setErrorVisible(false);
+    // 重试一律从第 1 页拉取，避免 load more 失败后只替换为单页数据。
+    void loadPage(1, items.length === 0 ? 'initial' : 'refresh');
+  }, [items.length, loadPage]);
+
+  const handleLoadMore = useCallback(() => {
+    if (
+      isInitialLoading ||
+      isRefreshing ||
+      isLoadingMore ||
+      loadingMoreRef.current ||
+      !hasMore
+    ) {
+      return;
+    }
+    void loadPage(page + 1, 'more');
+  }, [hasMore, isInitialLoading, isLoadingMore, isRefreshing, loadPage, page]);
+
+  const handleScroll = useCallback(
+    (event: {
+      nativeEvent: {
+        layoutMeasurement: { height: number };
+        contentOffset: { y: number };
+        contentSize: { height: number };
+      };
+    }) => {
+      const { layoutMeasurement, contentOffset, contentSize } =
+        event.nativeEvent;
+      if (
+        layoutMeasurement.height + contentOffset.y >=
+        contentSize.height - 240
+      ) {
+        handleLoadMore();
+      }
+    },
+    [handleLoadMore],
+  );
+
+  const estimateHeight = useCallback(
+    (product: ProductCardData) =>
+      estimateProductCardHeight(
+        cardWidth,
+        getImageAspectRatio(product.mainImage),
+      ),
+    [cardWidth],
+  );
+
+  const [leftColumn, rightColumn] = useMemo(() => {
+    void layoutVersion;
+    return distributeWaterfallColumns(items, estimateHeight);
+  }, [estimateHeight, items, layoutVersion]);
+
+  const showEmpty =
+    !isInitialLoading && !isRefreshing && items.length === 0 && !errorVisible;
+
+  const renderColumn = (columnItems: ProductCardData[]) =>
+    columnItems.map((product) => (
+      <ProductCard
+        key={product.id}
+        product={product}
+        width={cardWidth}
+        onAspectRatioChange={bumpLayout}
+        onPress={() =>
+          navigation.navigate('ProductDetail', { productId: product.id })
+        }
+      />
+    ));
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="搜索"
-        onPress={() => navigation.navigate('Search')}
-        style={styles.search}
+    <View style={styles.page}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
+        onScroll={handleScroll}
+        scrollEventThrottle={200}
       >
-        <Text style={styles.searchText}>搜索商品</Text>
-      </Pressable>
-      <SortBar value={sort} onChange={setSort} />
-      <View style={styles.row}>
-        <ProductCard
-          product={DEMO_PRODUCT}
-          width={cardWidth}
-          onPress={() =>
-            navigation.navigate('ProductDetail', { productId: DEMO_PRODUCT.id })
-          }
-        />
-      </View>
-      <View style={styles.stepper}>
-        <Text style={styles.hint}>数量</Text>
-        <QtyStepper value={qty} onChange={setQty} max={99} />
-      </View>
-      <Text variant="titleSmall" style={styles.section}>
-        占位路由（核对导航树）
-      </Text>
-      {LINKS.map((link) => (
         <Pressable
-          key={link.label}
           accessibilityRole="button"
-          onPress={() => link.onPress(navigation)}
-          style={styles.link}
+          accessibilityLabel="搜索"
+          onPress={() => navigation.navigate('Search')}
+          style={styles.search}
         >
-          <Text style={styles.linkText}>{link.label}</Text>
+          <Text style={styles.searchText}>搜索商品</Text>
         </Pressable>
-      ))}
-    </ScrollView>
+        <SortBar value={sort} onChange={setSort} />
+        {isInitialLoading ? (
+          <ListSkeleton rows={4} />
+        ) : showEmpty ? (
+          <EmptyState
+            title="暂无商品"
+            description="稍后再来看看"
+            illustration={
+              <MaterialCommunityIcons
+                name="shopping-outline"
+                size={48}
+                color={tokens.color.textTertiary}
+              />
+            }
+          />
+        ) : items.length > 0 ? (
+          <View style={styles.waterfall}>
+            <View style={styles.column}>{renderColumn(leftColumn)}</View>
+            <View style={styles.column}>{renderColumn(rightColumn)}</View>
+          </View>
+        ) : null}
+        {isLoadingMore ? (
+          <View style={styles.footer}>
+            <ActivityIndicator color={tokens.color.primary} />
+          </View>
+        ) : null}
+      </ScrollView>
+      <Snackbar
+        visible={errorVisible}
+        onDismiss={() => setErrorVisible(false)}
+        action={{ label: '重试', onPress: handleRetry }}
+      >
+        加载失败，请重试
+      </Snackbar>
+    </View>
   );
 }
 
@@ -106,6 +254,9 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: tokens.color.background,
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
     paddingBottom: tokens.space.xl,
@@ -121,33 +272,17 @@ const styles = StyleSheet.create({
   searchText: {
     color: tokens.color.textTertiary,
   },
-  row: {
-    paddingHorizontal: tokens.space.lg,
-    paddingTop: tokens.space.md,
-  },
-  stepper: {
+  waterfall: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: tokens.space.md,
-    padding: tokens.space.lg,
-  },
-  hint: {
-    color: tokens.color.textSecondary,
-  },
-  section: {
     paddingHorizontal: tokens.space.lg,
     paddingTop: tokens.space.md,
-    color: tokens.color.textPrimary,
+    gap: tokens.space.md,
   },
-  link: {
-    minHeight: tokens.minTouch,
-    justifyContent: 'center',
-    paddingHorizontal: tokens.space.lg,
-    backgroundColor: tokens.color.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: tokens.color.line,
+  column: {
+    flex: 1,
   },
-  linkText: {
-    color: tokens.color.primary,
+  footer: {
+    paddingVertical: tokens.space.lg,
+    alignItems: 'center',
   },
 });
