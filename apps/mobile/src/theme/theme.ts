@@ -1,0 +1,51 @@
+import { MD3LightTheme, type MD3Theme } from 'react-native-paper';
+
+import { tokens } from './tokens';
+
+/** Paper MD3 映射 §2 色板；按钮主色 / 页底 / 卡片白底。 */
+export const theme: MD3Theme = {
+  ...MD3LightTheme,
+  roundness: 2,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: tokens.color.primary,
+    onPrimary: tokens.color.surface,
+    primaryContainer: tokens.color.primarySoft,
+    onPrimaryContainer: tokens.color.primaryPressed,
+    secondary: tokens.color.textSecondary,
+    onSecondary: tokens.color.surface,
+    secondaryContainer: tokens.color.disabledFill,
+    onSecondaryContainer: tokens.color.textPrimary,
+    tertiary: tokens.color.success,
+    onTertiary: tokens.color.surface,
+    tertiaryContainer: tokens.color.primarySoft,
+    onTertiaryContainer: tokens.color.textPrimary,
+    error: tokens.color.error,
+    onError: tokens.color.surface,
+    errorContainer: tokens.color.primarySoft,
+    onErrorContainer: tokens.color.error,
+    background: tokens.color.background,
+    onBackground: tokens.color.textPrimary,
+    surface: tokens.color.surface,
+    onSurface: tokens.color.textPrimary,
+    surfaceVariant: tokens.color.surface,
+    onSurfaceVariant: tokens.color.textSecondary,
+    outline: tokens.color.line,
+    outlineVariant: tokens.color.line,
+    inverseSurface: tokens.color.textPrimary,
+    inverseOnSurface: tokens.color.surface,
+    inversePrimary: tokens.color.primaryPressed,
+    surfaceDisabled: tokens.color.disabledFill,
+    onSurfaceDisabled: tokens.color.disabledText,
+    backdrop: 'rgba(26, 26, 26, 0.4)',
+    elevation: {
+      ...MD3LightTheme.colors.elevation,
+      level0: tokens.color.background,
+      level1: tokens.color.surface,
+      level2: tokens.color.surface,
+      level3: tokens.color.surface,
+      level4: tokens.color.surface,
+      level5: tokens.color.surface,
+    },
+  },
+};
