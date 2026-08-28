@@ -1,5 +1,6 @@
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import { AddressesModule } from './addresses/addresses.module';
@@ -23,6 +24,7 @@ import { UsersModule } from './users/users.module';
         pinoHttp: buildPinoHttpOptions(),
       }),
     }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule,
     UsersModule,
