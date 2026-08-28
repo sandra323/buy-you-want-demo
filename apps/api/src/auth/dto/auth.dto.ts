@@ -37,3 +37,13 @@ export class LoginDto {
   @MaxLength(20)
   password!: string;
 }
+
+export class RefreshDto {
+  @ApiProperty({
+    description: '登录/上次刷新返回的明文 refresh（128 位 hex）',
+    example: 'ab'.repeat(64),
+  })
+  @IsString()
+  @MinLength(8)
+  refreshToken!: string;
+}

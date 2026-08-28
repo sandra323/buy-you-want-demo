@@ -8,6 +8,7 @@ import { UsersModule } from '../users/users.module';
 import { User } from '../users/user.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthClock } from './auth.clock';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { getJwtAccessTtl, getJwtSecret } from './jwt-env';
 import { JwtStrategy } from './jwt.strategy';
@@ -40,6 +41,7 @@ import { getThrottleLimit, getThrottleTtlMs } from './throttle-env';
   controllers: [AuthController],
   providers: [
     AuthService,
+    AuthClock,
     JwtStrategy,
     {
       // 全局 JWT；公开路由靠 @Public() 跳过。Throttler 只挂在 auth 写接口上。

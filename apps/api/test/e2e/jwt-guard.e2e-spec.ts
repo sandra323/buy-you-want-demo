@@ -2,11 +2,7 @@ import { randomUUID } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ErrorCode } from '@lightbuy/shared';
 import request from 'supertest';
-import {
-  createTestApp,
-  resetDb,
-  type TestAppHandles,
-} from './helpers';
+import { createTestApp, resetDb, type TestAppHandles } from './helpers';
 
 describe('JWT access guard (Task 3.4)', () => {
   let handles: TestAppHandles;
@@ -48,17 +44,19 @@ describe('JWT access guard (Task 3.4)', () => {
   }
 
   it('GET /api/v1/health stays public', async () => {
-    const res = await request(handles.app.getHttpServer()).get('/api/v1/health');
+    const res = await request(handles.app.getHttpServer()).get(
+      '/api/v1/health',
+    );
     expect(res.status).toBe(200);
     expect(res.body.code).toBe(ErrorCode.OK);
   });
 
   it('POST /api/v1/auth/refresh stays public', async () => {
-    const res = await request(handles.app.getHttpServer()).post(
-      '/api/v1/auth/refresh',
-    );
-    expect(res.status).toBe(201);
-    expect(res.body.code).toBe(ErrorCode.OK);
+    const res = await request(handles.app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: 'a'.repeat(128) });
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe(ErrorCode.REFRESH_EXPIRED);
   });
 
   it('protected route without header → 401 and 40110', async () => {

@@ -9,16 +9,20 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiExcludeEndpoint,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto } from './dto/auth.dto';
+import { CurrentUser } from './current-user.decorator';
+import { LoginDto, RefreshDto, RegisterDto } from './dto/auth.dto';
 import type { AccessUser } from './jwt.strategy';
 import { Public } from './public.decorator';
+import { SWAGGER_BEARER_AUTH } from '../http/setup-swagger';
 
 const AUTH_TOKENS_EXAMPLE = {
   code: 0,
@@ -61,16 +65,30 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-  /** Task 3.6 才实现旋转；占位同样限流，避免上线前被刷。 */
   @Public()
   @UseGuards(ThrottlerGuard)
+  @HttpCode(HttpStatus.OK)
   @Post('refresh')
-  @ApiOperation({
-    summary: '刷新双 Token（旋转，Task 3.6）',
-    description: '当前为占位；实现后 body 为 `{ refreshToken }`。',
+  @ApiOperation({ summary: '旋转 refresh，签发新的双 Token' })
+  @ApiOkResponse({ schema: { example: AUTH_TOKENS_EXAMPLE } })
+  refresh(@Body() dto: RefreshDto) {
+    return this.authService.refresh(dto.refreshToken);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('logout')
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({ summary: '吊销该用户全部 refresh' })
+  @ApiOkResponse({
+    schema: {
+      example: { code: 0, message: 'ok', data: { ok: true } },
+    },
   })
-  refresh() {
-    return {};
+  @ApiUnauthorizedResponse({
+    schema: { example: { code: 40110, message: '未登录', data: null } },
+  })
+  logout(@CurrentUser() user: AccessUser) {
+    return this.authService.logout(user.id);
   }
 
   /** 需带 Bearer 的探测接口，用来验全局 JWT Guard（不走 @Public）。 */
