@@ -27,7 +27,3 @@ export function AddressListScreen() {
 export function AddressEditScreen() {
   return <PlaceholderScreen body="地址编辑占位（M9）" />;
 }
-
-export function SettingsScreen() {
-  return <PlaceholderScreen body="设置占位（M7 / M10）" />;
-}

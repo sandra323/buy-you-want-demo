@@ -6,7 +6,10 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "plugins": ["expo-dev-client"],
+    "plugins": [
+      "expo-dev-client",
+      "expo-secure-store"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.lightbuy.mobile",
