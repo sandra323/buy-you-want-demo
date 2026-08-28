@@ -1,9 +1,5 @@
 import { PlaceholderScreen } from './PlaceholderScreen';
 
-export function ProductDetailScreen() {
-  return <PlaceholderScreen body="商品详情占位。返回可回到首页 Tab。" />;
-}
-
 export function CheckoutScreen() {
   return <PlaceholderScreen body="结算占位（M9）" />;
 }

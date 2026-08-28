@@ -9,7 +9,7 @@ export type TabParamList = {
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<TabParamList> | undefined;
   Search: undefined;
-  ProductDetail: { productId?: string };
+  ProductDetail: { productId: string };
   Checkout: undefined;
   OrderList: undefined;
   OrderDetail: { orderId?: string };

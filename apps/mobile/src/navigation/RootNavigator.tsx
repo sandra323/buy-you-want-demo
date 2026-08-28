@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { LoginScreen } from '../screens/LoginScreen';
+import { ProductDetailScreen } from '../screens/ProductDetailScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
@@ -11,7 +12,6 @@ import {
   CheckoutScreen,
   OrderDetailScreen,
   OrderListScreen,
-  ProductDetailScreen,
 } from '../screens/stack-placeholders';
 import { tokens } from '../theme';
 import { TabNavigator } from './TabNavigator';
