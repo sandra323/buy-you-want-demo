@@ -175,7 +175,7 @@ export function SearchScreen() {
           </Pressable>
         </View>
 
-        {user && history.length > 0 && !hasSearched ? (
+        {user && history.length > 0 ? (
           <View style={styles.history}>
             <Text variant="titleMedium">搜索历史</Text>
             <View style={styles.historyItems}>

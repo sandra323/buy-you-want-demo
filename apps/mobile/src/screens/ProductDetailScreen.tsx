@@ -29,6 +29,7 @@ import {
   type PendingAction,
   usePendingActionStore,
 } from '../store/pending-action';
+import { decidePendingRetryOnFocus } from './pending-retry';
 import { tokens } from '../theme';
 
 type DetailRoute = RouteProp<RootStackParamList, 'ProductDetail'>;
@@ -40,7 +41,6 @@ export function ProductDetailScreen() {
   const { width } = useWindowDimensions();
   const { productId } = route.params;
   const user = useAuthStore((state) => state.user);
-  const pendingAction = usePendingActionStore((state) => state.pendingAction);
   const setPendingAction = usePendingActionStore(
     (state) => state.setPendingAction,
   );
@@ -127,6 +127,8 @@ export function ProductDetailScreen() {
         } else {
           navigation.navigate('Checkout');
         }
+        // 失败时保留 pending，已登录用户可再点一次；成功或进结算后再清。
+        clearPendingAction();
       } catch (error) {
         setSnackbarMessage(
           isApiError(error) ? error.message : '操作失败，请稍后重试',
@@ -134,7 +136,6 @@ export function ProductDetailScreen() {
       } finally {
         setIsAdding(false);
         actionInFlightRef.current = false;
-        clearPendingAction();
       }
     },
     [clearPendingAction, navigation, productId, setCartBadge],
@@ -143,11 +144,17 @@ export function ProductDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       const action = usePendingActionStore.getState().pendingAction;
-      if (action?.productId !== productId || !awaitingLoginRef.current) {
+      const decision = decidePendingRetryOnFocus({
+        pending: action,
+        productId,
+        awaitingLogin: awaitingLoginRef.current,
+        isLoggedIn: Boolean(useAuthStore.getState().user),
+      });
+      if (decision === 'ignore' || !action) {
         return;
       }
       awaitingLoginRef.current = false;
-      if (useAuthStore.getState().user) {
+      if (decision === 'execute') {
         void executePendingAction(action);
       } else {
         clearPendingAction();
@@ -155,24 +162,15 @@ export function ProductDetailScreen() {
     }, [clearPendingAction, executePendingAction, productId]),
   );
 
-  useEffect(() => {
-    if (
-      user &&
-      pendingAction?.productId === productId &&
-      !awaitingLoginRef.current
-    ) {
-      void executePendingAction(pendingAction);
-    }
-  }, [executePendingAction, pendingAction, productId, user]);
-
   const beginAction = useCallback(
     (type: PendingAction['type']) => {
       if (!product || product.stock === 0 || isAdding) {
         return;
       }
       const action: PendingAction = { type, productId, quantity };
-      setPendingAction(action);
+      // 已登录直接执行，避免 setPending 后再被 effect 跑第二次（立即购买会叠两个结算页）。
       if (!user) {
+        setPendingAction(action);
         awaitingLoginRef.current = true;
         navigation.navigate('Login');
         return;
