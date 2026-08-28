@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   NativeScrollEvent,
@@ -22,6 +22,7 @@ import {
   ProductWaterfall,
   SortBar,
 } from '../components';
+import { useProductExposure } from '../hooks/useProductExposure';
 import { useProductPagination } from '../hooks/useProductPagination';
 import type { RootStackParamList } from '../navigation/types';
 import { addSearchHistory, readSearchHistory } from '../storage/search-history';
@@ -32,6 +33,8 @@ import { tokens } from '../theme';
 type SearchPage = PaginatedData<ProductCard> & {
   isFallback?: boolean;
 };
+
+const onProductExposure = (_productId: string): void => undefined;
 
 export function SearchScreen() {
   const navigation =
@@ -84,6 +87,12 @@ export function SearchScreen() {
     loadMore,
     dismissError,
   } = useProductPagination<SearchPage>(fetchPage, submittedKeyword !== null);
+  const productIds = useMemo(() => items.map((item) => item.id), [items]);
+  const {
+    onViewportLayout,
+    onScroll: trackExposure,
+    onProductLayout,
+  } = useProductExposure({ productIds, onExposure: onProductExposure });
 
   const submitSearch = useCallback(
     (value: string) => {
@@ -103,6 +112,7 @@ export function SearchScreen() {
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      trackExposure(event);
       const { layoutMeasurement, contentOffset, contentSize } =
         event.nativeEvent;
       if (
@@ -112,7 +122,7 @@ export function SearchScreen() {
         loadMore();
       }
     },
-    [loadMore],
+    [loadMore, trackExposure],
   );
 
   const isFallback =
@@ -137,6 +147,7 @@ export function SearchScreen() {
             <RefreshControl refreshing={isRefreshing} onRefresh={refresh} />
           ) : undefined
         }
+        onLayout={onViewportLayout}
         onScroll={handleScroll}
         scrollEventThrottle={200}
       >
@@ -222,6 +233,7 @@ export function SearchScreen() {
             onProductPress={(productId) =>
               navigation.navigate('ProductDetail', { productId })
             }
+            onProductLayout={onProductLayout}
           />
         ) : !hasSearched ? (
           <EmptyState

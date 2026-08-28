@@ -1,4 +1,5 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import {
   ActivityIndicator,
   Pressable,
@@ -21,6 +22,7 @@ import {
   ProductWaterfall,
   SortBar,
 } from '../components';
+import { useProductExposure } from '../hooks/useProductExposure';
 import { useProductPagination } from '../hooks/useProductPagination';
 import type { RootStackParamList, TabParamList } from '../navigation/types';
 import { useCatalogFiltersStore } from '../store/catalog-filters';
@@ -30,6 +32,8 @@ type HomeNav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
+
+const onProductExposure = (_productId: string): void => undefined;
 
 export function HomeScreen() {
   const navigation = useNavigation<HomeNav>();
@@ -52,15 +56,16 @@ export function HomeScreen() {
     loadMore,
     dismissError,
   } = useProductPagination(fetchPage);
+  const productIds = useMemo(() => items.map((item) => item.id), [items]);
+  const {
+    onViewportLayout,
+    onScroll: trackExposure,
+    onProductLayout,
+  } = useProductExposure({ productIds, onExposure: onProductExposure });
 
   const handleScroll = useCallback(
-    (event: {
-      nativeEvent: {
-        layoutMeasurement: { height: number };
-        contentOffset: { y: number };
-        contentSize: { height: number };
-      };
-    }) => {
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      trackExposure(event);
       const { layoutMeasurement, contentOffset, contentSize } =
         event.nativeEvent;
       if (
@@ -70,7 +75,7 @@ export function HomeScreen() {
         loadMore();
       }
     },
-    [loadMore],
+    [loadMore, trackExposure],
   );
 
   const showEmpty =
@@ -84,6 +89,7 @@ export function HomeScreen() {
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={refresh} />
         }
+        onLayout={onViewportLayout}
         onScroll={handleScroll}
         scrollEventThrottle={200}
       >
@@ -116,6 +122,7 @@ export function HomeScreen() {
             onProductPress={(productId) =>
               navigation.navigate('ProductDetail', { productId })
             }
+            onProductLayout={onProductLayout}
           />
         ) : null}
         {isLoadingMore ? (
