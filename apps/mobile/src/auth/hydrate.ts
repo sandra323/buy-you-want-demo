@@ -1,5 +1,5 @@
-import { persistSession } from './session';
-import { refresh } from '../api/auth';
+import { apiClient } from '../api/client';
+import { refreshSession } from '../api/interceptors';
 import { getRefreshToken } from '../storage/tokens';
 import { useAuthStore } from '../store/auth';
 
@@ -12,8 +12,7 @@ export async function hydrateAuth(): Promise<void> {
       return;
     }
     // Spec: always hit /auth/refresh on cold start when a refresh token exists.
-    const data = await refresh({ refreshToken });
-    await persistSession(data);
+    await refreshSession(apiClient);
   } catch {
     await logoutLocal();
   } finally {

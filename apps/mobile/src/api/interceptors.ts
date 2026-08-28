@@ -73,6 +73,11 @@ function refreshSingleFlight(client: AxiosInstance): Promise<void> {
   return refreshPromise;
 }
 
+/** Cold-start hydrate and 40100 replay share this lock so rotation cannot double-fire. */
+export function refreshSession(client: AxiosInstance): Promise<void> {
+  return refreshSingleFlight(client);
+}
+
 async function runRefresh(client: AxiosInstance): Promise<void> {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) {
@@ -152,7 +157,9 @@ export function installAuthInterceptors(client: AxiosInstance): void {
         (code === ErrorCode.UNAUTHORIZED_INVALID ||
           code === ErrorCode.UNAUTHORIZED_MISSING)
       ) {
-        await useAuthStore.getState().logoutLocal();
+        if (!useAuthStore.getState().isHydrating) {
+          await useAuthStore.getState().logoutLocal();
+        }
         throw new ApiError(code, envelopeMessage(response.data));
       }
 
@@ -162,8 +169,10 @@ export function installAuthInterceptors(client: AxiosInstance): void {
         }
         try {
           return await replayAfterRefresh(client, config);
-        } catch {
-          throw new ApiError(code, envelopeMessage(response.data));
+        } catch (error) {
+          throw error instanceof ApiError
+            ? error
+            : new ApiError(code, envelopeMessage(response.data));
         }
       }
 
@@ -195,7 +204,9 @@ export function installAuthInterceptors(client: AxiosInstance): void {
         (code === ErrorCode.UNAUTHORIZED_INVALID ||
           code === ErrorCode.UNAUTHORIZED_MISSING)
       ) {
-        await useAuthStore.getState().logoutLocal();
+        if (!useAuthStore.getState().isHydrating) {
+          await useAuthStore.getState().logoutLocal();
+        }
         return Promise.reject(apiError);
       }
 
@@ -205,8 +216,8 @@ export function installAuthInterceptors(client: AxiosInstance): void {
         }
         try {
           return await replayAfterRefresh(client, config);
-        } catch {
-          return Promise.reject(apiError);
+        } catch (error) {
+          return Promise.reject(error instanceof ApiError ? error : apiError);
         }
       }
 

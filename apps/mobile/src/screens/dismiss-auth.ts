@@ -11,10 +11,15 @@ export function dismissAuthScreens(
     const routes = state.routes.filter(
       (route) => route.name !== 'Login' && route.name !== 'Register',
     );
+    if (routes.length === 0) {
+      return CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' }],
+      });
+    }
     return CommonActions.reset({
-      ...state,
+      index: routes.length - 1,
       routes,
-      index: Math.max(0, routes.length - 1),
     });
   });
 }
