@@ -125,7 +125,11 @@ export function ProductDetailScreen() {
           );
           setSnackbarMessage('已加入购物车');
         } else {
-          navigation.navigate('Checkout');
+          navigation.navigate('Checkout', {
+            source: 'buyNow',
+            productId: action.productId,
+            quantity: action.quantity,
+          });
         }
         // 失败时保留 pending，已登录用户可再点一次；成功或进结算后再清。
         clearPendingAction();

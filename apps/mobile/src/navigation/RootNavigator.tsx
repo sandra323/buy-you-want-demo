@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { AddressEditScreen } from '../screens/AddressEditScreen';
 import { AddressListScreen } from '../screens/AddressListScreen';
+import { CheckoutScreen } from '../screens/CheckoutScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { ProductDetailScreen } from '../screens/ProductDetailScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
@@ -9,7 +10,6 @@ import { SearchScreen } from '../screens/SearchScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { UiKitPreviewScreen } from '../screens/UiKitPreviewScreen';
 import {
-  CheckoutScreen,
   OrderDetailScreen,
   OrderListScreen,
 } from '../screens/stack-placeholders';
