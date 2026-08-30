@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CartScreen } from '../screens/CartScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MeScreen } from '../screens/MeScreen';
+import { useCartBadgeStore } from '../store/cart-badge';
 import { tokens } from '../theme';
 import type { TabParamList } from './types';
 
@@ -30,6 +31,8 @@ function MeTabIcon({ color, size }: TabBarIconProps) {
 }
 
 export function TabNavigator() {
+  const cartCount = useCartBadgeStore((state) => state.count);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -58,6 +61,8 @@ export function TabNavigator() {
           title: '购物车',
           tabBarLabel: '购物车',
           tabBarIcon: CartTabIcon,
+          tabBarBadge: cartCount > 0 ? cartCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: tokens.color.primary },
         }}
       />
       <Tab.Screen
