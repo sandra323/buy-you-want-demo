@@ -4,15 +4,13 @@ import { AddressEditScreen } from '../screens/AddressEditScreen';
 import { AddressListScreen } from '../screens/AddressListScreen';
 import { CheckoutScreen } from '../screens/CheckoutScreen';
 import { LoginScreen } from '../screens/LoginScreen';
+import { OrderDetailScreen } from '../screens/OrderDetailScreen';
+import { OrderListScreen } from '../screens/OrderListScreen';
 import { ProductDetailScreen } from '../screens/ProductDetailScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { UiKitPreviewScreen } from '../screens/UiKitPreviewScreen';
-import {
-  OrderDetailScreen,
-  OrderListScreen,
-} from '../screens/stack-placeholders';
 import { tokens } from '../theme';
 import { TabNavigator } from './TabNavigator';
 import type { RootStackParamList } from './types';

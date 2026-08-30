@@ -13,7 +13,7 @@ export type RootStackParamList = {
   ProductDetail: { productId: string };
   Checkout: CheckoutSource;
   OrderList: undefined;
-  OrderDetail: { orderId?: string };
+  OrderDetail: { orderId: string };
   AddressList: undefined;
   AddressEdit: { addressId?: string };
   Login: undefined;
