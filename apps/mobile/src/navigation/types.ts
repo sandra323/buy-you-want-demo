@@ -10,7 +10,7 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<TabParamList> | undefined;
   Search: undefined;
   ProductDetail: { productId: string };
-  Checkout: undefined;
+  Checkout: { source: 'cart' } | undefined;
   OrderList: undefined;
   OrderDetail: { orderId?: string };
   AddressList: undefined;

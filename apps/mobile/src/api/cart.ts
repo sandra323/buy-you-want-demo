@@ -13,9 +13,7 @@ export async function getCart(): Promise<CartData> {
   return unwrapData(res.data);
 }
 
-export async function addCartItem(
-  body: AddCartItemRequest,
-): Promise<CartData> {
+export async function addCartItem(body: AddCartItemRequest): Promise<CartData> {
   const res = await apiClient.post<ApiResponse<CartData>>('/cart', body);
   return unwrapData(res.data);
 }
@@ -24,10 +22,7 @@ export async function updateCartItem(
   id: string,
   body: UpdateCartItemRequest,
 ): Promise<CartData> {
-  const res = await apiClient.patch<ApiResponse<CartData>>(
-    `/cart/${id}`,
-    body,
-  );
+  const res = await apiClient.patch<ApiResponse<CartData>>(`/cart/${id}`, body);
   return unwrapData(res.data);
 }
 

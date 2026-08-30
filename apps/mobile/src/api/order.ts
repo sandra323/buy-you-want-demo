@@ -41,8 +41,6 @@ export async function payOrder(id: string): Promise<Order> {
 }
 
 export async function cancelOrder(id: string): Promise<Order> {
-  const res = await apiClient.post<ApiResponse<Order>>(
-    `/orders/${id}/cancel`,
-  );
+  const res = await apiClient.post<ApiResponse<Order>>(`/orders/${id}/cancel`);
   return unwrapData(res.data);
 }

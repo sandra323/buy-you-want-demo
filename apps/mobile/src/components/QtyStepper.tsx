@@ -6,12 +6,19 @@ type QtyStepperProps = {
   value: number;
   min?: number;
   max?: number;
+  disabled?: boolean;
   onChange: (next: number) => void;
 };
 
-export function QtyStepper({ value, min = 1, max, onChange }: QtyStepperProps) {
-  const atMin = value <= min;
-  const atMax = max != null && value >= max;
+export function QtyStepper({
+  value,
+  min = 1,
+  max,
+  disabled = false,
+  onChange,
+}: QtyStepperProps) {
+  const atMin = disabled || value <= min;
+  const atMax = disabled || (max != null && value >= max);
 
   return (
     <View style={styles.row}>

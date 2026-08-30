@@ -14,7 +14,9 @@ export async function getHome(
 ): Promise<PaginatedData<ProductCard>> {
   const res = await apiClient.get<ApiResponse<PaginatedData<ProductCard>>>(
     '/home',
-    { params: { sort: query.sort, page: query.page, pageSize: query.pageSize } },
+    {
+      params: { sort: query.sort, page: query.page, pageSize: query.pageSize },
+    },
   );
   return unwrapData(res.data);
 }
