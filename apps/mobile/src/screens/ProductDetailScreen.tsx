@@ -26,11 +26,16 @@ import type { RootStackParamList } from '../navigation/types';
 import { useAuthStore } from '../store/auth';
 import { useCartBadgeStore } from '../store/cart-badge';
 import {
+  type ScreenPoint,
+  useCartAnimationStore,
+} from '../store/cart-animation';
+import {
   type PendingAction,
   usePendingActionStore,
 } from '../store/pending-action';
 import { decidePendingRetryOnFocus } from './pending-retry';
 import { tokens } from '../theme';
+import { cartBadgeCount } from '../utils/cart-badge-count';
 
 type DetailRoute = RouteProp<RootStackParamList, 'ProductDetail'>;
 type DetailNavigation = NativeStackNavigationProp<RootStackParamList>;
@@ -48,6 +53,9 @@ export function ProductDetailScreen() {
     (state) => state.clearPendingAction,
   );
   const setCartBadge = useCartBadgeStore((state) => state.setCount);
+  const notifyAddSuccess = useCartAnimationStore(
+    (state) => state.notifyAddSuccess,
+  );
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -60,6 +68,19 @@ export function ProductDetailScreen() {
   const requestIdRef = useRef(0);
   const actionInFlightRef = useRef(false);
   const awaitingLoginRef = useRef(false);
+  const addButtonRef = useRef<View>(null);
+  const addButtonPointRef = useRef<ScreenPoint | null>(null);
+
+  const measureAddButton = useCallback(() => {
+    requestAnimationFrame(() => {
+      addButtonRef.current?.measureInWindow((x, y, width, height) => {
+        addButtonPointRef.current = {
+          x: x + width / 2,
+          y: y + height / 2,
+        };
+      });
+    });
+  }, []);
 
   const loadProduct = useCallback(async () => {
     const requestId = ++requestIdRef.current;
@@ -120,9 +141,8 @@ export function ProductDetailScreen() {
             productId: action.productId,
             quantity: action.quantity,
           });
-          setCartBadge(
-            cart.items.reduce((total, item) => total + item.quantity, 0),
-          );
+          setCartBadge(cartBadgeCount(cart.items));
+          notifyAddSuccess(addButtonPointRef.current);
           setSnackbarMessage('已加入购物车');
         } else {
           navigation.navigate('Checkout', {
@@ -142,7 +162,7 @@ export function ProductDetailScreen() {
         actionInFlightRef.current = false;
       }
     },
-    [clearPendingAction, navigation, productId, setCartBadge],
+    [clearPendingAction, navigation, notifyAddSuccess, productId, setCartBadge],
   );
 
   useFocusEffect(
@@ -297,16 +317,23 @@ export function ProductDetailScreen() {
       </ScrollView>
 
       <View style={styles.actions}>
-        <Button
-          mode="outlined"
-          disabled={soldOut || isAdding}
-          loading={isAdding}
-          onPress={() => beginAction('add_to_cart')}
+        <View
+          ref={addButtonRef}
+          collapsable={false}
+          onLayout={measureAddButton}
           style={styles.action}
-          contentStyle={styles.actionContent}
         >
-          加入购物车
-        </Button>
+          <Button
+            mode="outlined"
+            disabled={soldOut || isAdding}
+            loading={isAdding}
+            onPress={() => beginAction('add_to_cart')}
+            style={styles.actionButton}
+            contentStyle={styles.actionContent}
+          >
+            加入购物车
+          </Button>
+        </View>
         <Button
           mode="contained"
           disabled={soldOut || isAdding}
@@ -380,6 +407,8 @@ const styles = StyleSheet.create({
   },
   action: {
     flex: 1,
+  },
+  actionButton: {
     borderRadius: tokens.radius.input,
   },
   actionContent: {

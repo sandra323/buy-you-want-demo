@@ -1,3 +1,4 @@
+export { AddToCartAnimationOverlay } from './AddToCartAnimationOverlay';
 export { AddressSummary } from './AddressSummary';
 export { EmptyState } from './EmptyState';
 export { ListSkeleton } from './ListSkeleton';

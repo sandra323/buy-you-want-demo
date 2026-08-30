@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { hydrateAuth } from './src/auth/hydrate';
 import { setSessionExpiryHandler } from './src/auth/session-expiry';
+import { AddToCartAnimationOverlay } from './src/components';
 import { navigationRef } from './src/navigation/ref';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { useToastStore } from './src/store/toast';
@@ -54,6 +55,7 @@ export default function App() {
             <RootNavigator />
             <StatusBar style="dark" />
           </NavigationContainer>
+          <AddToCartAnimationOverlay />
           <Snackbar visible={Boolean(toast)} onDismiss={dismissToast}>
             {toast}
           </Snackbar>
