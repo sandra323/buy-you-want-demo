@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Order } from '@lightbuy/shared';
@@ -32,6 +33,10 @@ import {
   ORDER_STATUS_TABS,
   orderStatusLabel,
 } from '../utils/order-status';
+import {
+  shouldRefreshOnAppResume,
+  shouldRefreshOnResume,
+} from '../utils/refresh-on-resume';
 
 type OrderListNavigation = NativeStackNavigationProp<
   RootStackParamList,
@@ -40,6 +45,7 @@ type OrderListNavigation = NativeStackNavigationProp<
 
 export function OrderListScreen() {
   const navigation = useNavigation<OrderListNavigation>();
+  const isFocused = useIsFocused();
   const user = useAuthStore((state) => state.user);
   const isHydrating = useAuthStore((state) => state.isHydrating);
   const [status, setStatus] = useState<OrderStatusFilter>('all');
@@ -50,10 +56,30 @@ export function OrderListScreen() {
     isLoadingMore,
     hasError,
     refresh,
+    refetch,
     retry,
     loadMore,
     dismissError,
   } = useOrderPagination(status, Boolean(user));
+  const wasFocusedRef = useRef<boolean | null>(null);
+  const appStateRef = useRef(AppState.currentState);
+
+  useEffect(() => {
+    if (shouldRefreshOnResume(wasFocusedRef.current, isFocused)) {
+      refetch();
+    }
+    wasFocusedRef.current = isFocused;
+  }, [isFocused, refetch]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (shouldRefreshOnAppResume(appStateRef.current, nextState, isFocused)) {
+        refetch();
+      }
+      appStateRef.current = nextState;
+    });
+    return () => subscription.remove();
+  }, [isFocused, refetch]);
 
   if (isHydrating) {
     return <View style={styles.page} />;

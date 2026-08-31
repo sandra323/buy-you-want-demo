@@ -341,7 +341,13 @@ describe('orders API (Tasks 5.3–5.5)', () => {
     expect(unpaidAfter.body.data.status).toBe(3);
     expect(await stockOf(productId)).toBe(4);
 
-    await jobs.tick(new Date('2026-01-01T00:10:01.000Z'));
+    await jobs.tick(new Date('2026-01-01T00:03:01.000Z'));
+    const shipped = await http()
+      .get(`/api/v1/orders/${paid.body.data.id}`)
+      .set(auth);
+    expect(shipped.body.data.status).toBe(4);
+
+    await jobs.tick(new Date('2026-01-01T00:08:01.000Z'));
     const paidAfter = await http()
       .get(`/api/v1/orders/${paid.body.data.id}`)
       .set(auth);

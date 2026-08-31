@@ -93,7 +93,10 @@ describe('commerce flow + IDOR (Tasks 5.6–5.7)', () => {
       .post('/api/v1/addresses')
       .set(auth)
       .send(addressBody());
-    await http().post('/api/v1/cart').set(auth).send({ productId, quantity: 1 });
+    await http()
+      .post('/api/v1/cart')
+      .set(auth)
+      .send({ productId, quantity: 1 });
 
     const created = await http()
       .post('/api/v1/orders')
@@ -113,9 +116,14 @@ describe('commerce flow + IDOR (Tasks 5.6–5.7)', () => {
       [new Date('2026-01-01T00:00:00.000Z'), created.body.data.id],
     );
 
-    await handles.app
-      .get(OrderJobs)
-      .tick(new Date('2026-01-01T00:10:01.000Z'));
+    await handles.app.get(OrderJobs).tick(new Date('2026-01-01T00:08:01.000Z'));
+
+    const awaitingReceipt = await http()
+      .get(`/api/v1/orders/${created.body.data.id}`)
+      .set(auth);
+    expect(awaitingReceipt.body.data.status).toBe(4);
+
+    await handles.app.get(OrderJobs).tick(new Date('2026-01-01T00:13:02.000Z'));
 
     const detail = await http()
       .get(`/api/v1/orders/${created.body.data.id}`)

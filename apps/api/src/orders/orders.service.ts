@@ -21,6 +21,7 @@ import { toOrderDto } from './map-order';
 import { OrderItem } from './order-item.entity';
 import { generateOrderNo } from './order-no';
 import {
+  ORDER_STATUS_AWAITING_RECEIPT,
   ORDER_STATUS_CANCELLED,
   ORDER_STATUS_COMPLETED,
   ORDER_STATUS_PAID,
@@ -245,6 +246,22 @@ export class OrdersService {
     });
   }
 
+  async markAwaitingReceiptById(orderId: string, now: Date): Promise<boolean> {
+    const updated = await this.orders
+      .createQueryBuilder()
+      .update(Order)
+      .set({
+        status: ORDER_STATUS_AWAITING_RECEIPT,
+        awaitingReceiptAt: now,
+      })
+      .where('id = :id AND status = :expected', {
+        id: orderId,
+        expected: ORDER_STATUS_PAID,
+      })
+      .execute();
+    return Boolean(updated.affected);
+  }
+
   async completePaidById(orderId: string, now: Date): Promise<boolean> {
     const updated = await this.orders
       .createQueryBuilder()
@@ -252,7 +269,7 @@ export class OrdersService {
       .set({ status: ORDER_STATUS_COMPLETED, completedAt: now })
       .where('id = :id AND status = :expected', {
         id: orderId,
-        expected: ORDER_STATUS_PAID,
+        expected: ORDER_STATUS_AWAITING_RECEIPT,
       })
       .execute();
     return Boolean(updated.affected);
@@ -275,7 +292,36 @@ export class OrdersService {
     return rows.map((row) => row.id);
   }
 
+  async findDueShipIds(
+    paidAtOnOrBefore: Date,
+    take: number,
+  ): Promise<string[]> {
+    return this.findIdsByStatusAndPaidAt(
+      ORDER_STATUS_PAID,
+      paidAtOnOrBefore,
+      take,
+    );
+  }
+
   async findDueCompleteIds(
+    awaitingReceiptAtOnOrBefore: Date,
+    take: number,
+  ): Promise<string[]> {
+    const rows = await this.orders
+      .createQueryBuilder('o')
+      .select(['o.id'])
+      .where('o.status = :status AND o.awaitingReceiptAt <= :deadline', {
+        status: ORDER_STATUS_AWAITING_RECEIPT,
+        deadline: awaitingReceiptAtOnOrBefore,
+      })
+      .orderBy('o.awaitingReceiptAt', 'ASC')
+      .take(take)
+      .getMany();
+    return rows.map((row) => row.id);
+  }
+
+  private async findIdsByStatusAndPaidAt(
+    status: number,
     paidAtOnOrBefore: Date,
     take: number,
   ): Promise<string[]> {
@@ -283,7 +329,7 @@ export class OrdersService {
       .createQueryBuilder('o')
       .select(['o.id'])
       .where('o.status = :status AND o.paidAt <= :deadline', {
-        status: ORDER_STATUS_PAID,
+        status,
         deadline: paidAtOnOrBefore,
       })
       .orderBy('o.paidAt', 'ASC')

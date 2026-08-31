@@ -16,7 +16,7 @@ export function toOrderItemDto(row: OrderItem): OrderItemDto {
 }
 
 export function toOrderDto(order: Order, items: OrderItem[]): OrderDto {
-  const status = order.status as 0 | 1 | 2 | 3;
+  const status = order.status as 0 | 1 | 2 | 3 | 4;
   return {
     id: order.id,
     orderNo: order.orderNo,

@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   },
   checkbox: {
     minHeight: tokens.minTouch,
-    paddingHorizontal: 0,
+    paddingHorizontal: tokens.space.md,
     backgroundColor: tokens.color.surface,
     borderRadius: tokens.radius.input,
   },

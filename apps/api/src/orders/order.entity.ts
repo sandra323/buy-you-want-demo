@@ -14,6 +14,7 @@ export const ORDER_STATUS_PENDING_PAY = 0;
 export const ORDER_STATUS_PAID = 1;
 export const ORDER_STATUS_COMPLETED = 2;
 export const ORDER_STATUS_CANCELLED = 3;
+export const ORDER_STATUS_AWAITING_RECEIPT = 4;
 
 export interface ReceiverSnapshot {
   receiverName: string;
@@ -30,6 +31,8 @@ export interface ReceiverSnapshot {
   'status',
   'createdAt',
 ])
+@Index('IDX_orders_status_paid_at', ['status', 'paidAt'])
+@Index('IDX_orders_status_awaiting_receipt_at', ['status', 'awaitingReceiptAt'])
 export class Order extends UuidTimedEntity {
   @Column({ name: 'order_no', type: 'varchar', length: 32, unique: true })
   orderNo!: string;
@@ -52,6 +55,9 @@ export class Order extends UuidTimedEntity {
 
   @Column({ name: 'paid_at', type: 'datetime', nullable: true })
   paidAt!: Date | null;
+
+  @Column({ name: 'awaiting_receipt_at', type: 'datetime', nullable: true })
+  awaitingReceiptAt!: Date | null;
 
   @Column({ name: 'completed_at', type: 'datetime', nullable: true })
   completedAt!: Date | null;

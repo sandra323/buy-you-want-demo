@@ -168,7 +168,10 @@ export function OrderDetailScreen() {
             下单时间 {new Date(order.createdAt).toLocaleString()}
           </Text>
           {order.status === 1 ? (
-            <Text style={styles.hint}>订单已支付，完成状态由服务端更新</Text>
+            <Text style={styles.hint}>订单待发货，约 3 分钟后进入待收货</Text>
+          ) : null}
+          {order.status === 4 ? (
+            <Text style={styles.hint}>订单待收货，约 5 分钟后自动完成</Text>
           ) : null}
         </View>
 

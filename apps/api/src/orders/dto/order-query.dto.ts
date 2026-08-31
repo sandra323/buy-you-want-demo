@@ -9,8 +9,8 @@ import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class OrderListQueryDto {
   @ApiPropertyOptional({
-    description: '省略或 all 表示全部；否则 0|1|2|3',
-    enum: ['all', 0, 1, 2, 3],
+    description: '省略或 all 表示全部；否则 0|1|2|3|4',
+    enum: ['all', 0, 1, 2, 3, 4],
   })
   @IsOptional()
   @Transform(({ value }) => {
@@ -20,8 +20,8 @@ export class OrderListQueryDto {
     return Number(value);
   })
   @IsInt()
-  @IsIn([0, 1, 2, 3])
-  status?: 0 | 1 | 2 | 3;
+  @IsIn([0, 1, 2, 3, 4])
+  status?: 0 | 1 | 2 | 3 | 4;
 
   @ApiPropertyOptional({ default: PAGINATION_DEFAULT_PAGE, minimum: 1 })
   @IsOptional()

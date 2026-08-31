@@ -47,4 +47,17 @@ describe('order DTOs', () => {
     expect(dto.status).toBeUndefined();
     await expect(validate(dto)).resolves.toHaveLength(0);
   });
+
+  it('accepts awaiting-receipt status and rejects unknown statuses', async () => {
+    const awaitingReceipt = plainToInstance(OrderListQueryDto, {
+      status: '4',
+    });
+    expect(awaitingReceipt.status).toBe(4);
+    await expect(validate(awaitingReceipt)).resolves.toHaveLength(0);
+
+    const unknown = await validate(
+      plainToInstance(OrderListQueryDto, { status: '5' }),
+    );
+    expect(unknown.some((error) => error.property === 'status')).toBe(true);
+  });
 });

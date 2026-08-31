@@ -19,11 +19,11 @@ export interface OrderItem {
   image: string;
 }
 
-/** Order status: 0 pending_pay, 1 paid, 2 completed, 3 cancelled. */
+/** Order status: 0 pending_pay, 1 paid/to-ship, 4 awaiting receipt, 2 completed, 3 cancelled. */
 export interface Order {
   id: string;
   orderNo: string;
-  status: 0 | 1 | 2 | 3;
+  status: 0 | 1 | 2 | 3 | 4;
   totalAmount: number;
   items: OrderItem[];
   receiverSnapshot: ReceiverSnapshot;
@@ -31,6 +31,6 @@ export interface Order {
 }
 
 export interface OrderListQuery extends PaginationQuery {
-  /** Omit or `all` for all; otherwise `0|1|2|3`. */
-  status?: 0 | 1 | 2 | 3 | 'all';
+  /** Omit or `all` for all; otherwise `0|1|2|3|4`. */
+  status?: 0 | 1 | 2 | 3 | 4 | 'all';
 }

@@ -31,68 +31,74 @@ export function SortBar({ value, onChange }: SortBarProps) {
 
   return (
     <View style={styles.bar}>
-      <Menu
-        visible={menuOpen}
-        onDismiss={() => setMenuOpen(false)}
-        anchor={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="综合排序"
-            onPress={() => setMenuOpen(true)}
-            style={styles.tab}
-          >
-            <Text
-              style={[
-                styles.tabLabel,
-                comprehensiveActive && styles.tabLabelActive,
-              ]}
+      <View style={styles.tabSlot}>
+        <Menu
+          visible={menuOpen}
+          onDismiss={() => setMenuOpen(false)}
+          anchor={
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="综合排序"
+              onPress={() => setMenuOpen(true)}
+              style={styles.tab}
             >
-              {comprehensiveLabel(value)} ▾
-            </Text>
-          </Pressable>
-        }
-      >
-        {COMPREHENSIVE_OPTIONS.map((option) => (
-          <Menu.Item
-            key={option.sort}
-            title={option.label}
-            onPress={() => {
-              onChange(option.sort);
-              setMenuOpen(false);
-            }}
-          />
-        ))}
-      </Menu>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="按销量排序"
-        onPress={() => onChange(ProductSort.Sales)}
-        style={styles.tab}
-      >
-        <Text
-          style={[
-            styles.tabLabel,
-            value === ProductSort.Sales && styles.tabLabelActive,
-          ]}
+              <Text
+                style={[
+                  styles.tabLabel,
+                  comprehensiveActive && styles.tabLabelActive,
+                ]}
+              >
+                {comprehensiveLabel(value)} ▾
+              </Text>
+            </Pressable>
+          }
         >
-          销量
-        </Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="按上新排序"
-        onPress={() => onChange(ProductSort.Newest)}
-        style={styles.tab}
-      >
-        <Text
-          style={[
-            styles.tabLabel,
-            value === ProductSort.Newest && styles.tabLabelActive,
-          ]}
+          {COMPREHENSIVE_OPTIONS.map((option) => (
+            <Menu.Item
+              key={option.sort}
+              title={option.label}
+              onPress={() => {
+                onChange(option.sort);
+                setMenuOpen(false);
+              }}
+            />
+          ))}
+        </Menu>
+      </View>
+      <View style={styles.tabSlot}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="按销量排序"
+          onPress={() => onChange(ProductSort.Sales)}
+          style={styles.tab}
         >
-          上新
-        </Text>
-      </Pressable>
+          <Text
+            style={[
+              styles.tabLabel,
+              value === ProductSort.Sales && styles.tabLabelActive,
+            ]}
+          >
+            销量
+          </Text>
+        </Pressable>
+      </View>
+      <View style={styles.tabSlot}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="按上新排序"
+          onPress={() => onChange(ProductSort.Newest)}
+          style={styles.tab}
+        >
+          <Text
+            style={[
+              styles.tabLabel,
+              value === ProductSort.Newest && styles.tabLabelActive,
+            ]}
+          >
+            上新
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -104,11 +110,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: tokens.color.line,
   },
-  tab: {
+  tabSlot: {
     flex: 1,
+  },
+  tab: {
     minHeight: tokens.minTouch,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'stretch',
   },
   tabLabel: {
     color: tokens.color.textSecondary,

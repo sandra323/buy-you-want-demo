@@ -41,7 +41,8 @@ export class CartController {
   @Get()
   @ApiOperation({
     summary: '当前用户购物车',
-    description: '价格/库存/名称/图从商品表现价 JOIN；下架或缺货行标记 invalid，不自动删除。',
+    description:
+      '价格/库存/名称/图从商品表现价 JOIN；下架或缺货行标记 invalid，不自动删除。',
   })
   @ApiOkResponse({ schema: { example: CART_OK_EXAMPLE } })
   @ApiUnauthorizedResponse({ schema: { example: CART_UNAUTHORIZED_EXAMPLE } })

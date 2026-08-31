@@ -18,6 +18,7 @@ export function dismissAuthScreens(
       });
     }
     return CommonActions.reset({
+      ...state,
       index: routes.length - 1,
       routes,
     });

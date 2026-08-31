@@ -3,7 +3,7 @@ import type { Order } from '@lightbuy/shared';
 
 import { listOrders } from '../api/order';
 
-export type OrderStatusFilter = 'all' | 0 | 1 | 2 | 3;
+export type OrderStatusFilter = 'all' | 0 | 1 | 2 | 3 | 4;
 
 export function useOrderPagination(
   status: OrderStatusFilter,
@@ -18,17 +18,29 @@ export function useOrderPagination(
   const [hasError, setHasError] = useState(false);
   const requestIdRef = useRef(0);
   const loadingMoreRef = useRef(false);
+  const loadingMoreRequestIdRef = useRef<number | null>(null);
+  const pageOneLoadingRef = useRef(false);
 
   const load = useCallback(
-    async (nextPage: number, mode: 'initial' | 'refresh' | 'more') => {
+    async (
+      nextPage: number,
+      mode: 'initial' | 'refresh' | 'silent' | 'more',
+    ) => {
       const requestId = ++requestIdRef.current;
+      if (mode !== 'more') {
+        pageOneLoadingRef.current = true;
+        loadingMoreRef.current = false;
+        loadingMoreRequestIdRef.current = null;
+        setIsLoadingMore(false);
+      }
       if (mode === 'initial') {
         setIsInitialLoading(true);
       } else if (mode === 'refresh') {
         setIsRefreshing(true);
-      } else {
+      } else if (mode === 'more') {
         setIsLoadingMore(true);
         loadingMoreRef.current = true;
+        loadingMoreRequestIdRef.current = requestId;
       }
       try {
         const data = await listOrders({
@@ -57,11 +69,15 @@ export function useOrderPagination(
           setHasError(true);
         }
       } finally {
+        if (mode === 'more' && loadingMoreRequestIdRef.current === requestId) {
+          setIsLoadingMore(false);
+          loadingMoreRef.current = false;
+          loadingMoreRequestIdRef.current = null;
+        }
         if (requestId === requestIdRef.current) {
           setIsInitialLoading(false);
           setIsRefreshing(false);
-          setIsLoadingMore(false);
-          loadingMoreRef.current = false;
+          pageOneLoadingRef.current = false;
         }
       }
     },
@@ -71,6 +87,8 @@ export function useOrderPagination(
   useEffect(() => {
     requestIdRef.current += 1;
     loadingMoreRef.current = false;
+    loadingMoreRequestIdRef.current = null;
+    pageOneLoadingRef.current = false;
     setItems([]);
     setPage(1);
     setTotal(0);
@@ -84,8 +102,14 @@ export function useOrderPagination(
   }, [enabled, load]);
 
   const refresh = useCallback(() => {
-    if (enabled) {
+    if (enabled && !pageOneLoadingRef.current) {
       void load(1, 'refresh');
+    }
+  }, [enabled, load]);
+
+  const refetch = useCallback(() => {
+    if (enabled && !pageOneLoadingRef.current) {
+      void load(1, 'silent');
     }
   }, [enabled, load]);
 
@@ -97,6 +121,7 @@ export function useOrderPagination(
       isRefreshing ||
       isLoadingMore ||
       loadingMoreRef.current ||
+      pageOneLoadingRef.current ||
       !hasMore
     ) {
       return;
@@ -119,6 +144,7 @@ export function useOrderPagination(
     isLoadingMore,
     hasError,
     refresh,
+    refetch,
     retry: refresh,
     loadMore,
     dismissError: () => setHasError(false),

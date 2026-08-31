@@ -7,7 +7,8 @@ export const ORDER_STATUS_TABS: {
 }[] = [
   { value: 'all', label: '全部' },
   { value: 0, label: '待支付' },
-  { value: 1, label: '已支付' },
+  { value: 1, label: '待发货' },
+  { value: 4, label: '待收货' },
   { value: 2, label: '已完成' },
   { value: 3, label: '已取消' },
 ];
