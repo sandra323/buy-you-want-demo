@@ -7,3 +7,4 @@ pnpm-lock.yaml
 .expo
 apps/mobile/ios
 apps/mobile/android
+apps/mobile/src/data/cn-regions.json

@@ -16,7 +16,7 @@ export function setupSwagger(app: INestApplication): void {
         '受保护接口点 Authorize 填入登录返回的 accessToken。' +
         '错误走全局过滤器，不会把堆栈写进响应。',
     )
-    .setVersion('0.0.0')
+    .setVersion('1.0.0')
     .addBearerAuth(
       {
         type: 'http',

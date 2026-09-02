@@ -9,8 +9,9 @@ import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class OrderListQueryDto {
   @ApiPropertyOptional({
-    description: '省略或 all 表示全部；否则 0|1|2|3|4',
-    enum: ['all', 0, 1, 2, 3, 4],
+    description:
+      '省略或 all 表示全部；0=待支付，1=待发货，4=待收货，2=已完成，3=已取消',
+    enum: ['all', '0', '1', '2', '3', '4'],
   })
   @IsOptional()
   @Transform(({ value }) => {

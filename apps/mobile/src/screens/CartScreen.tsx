@@ -9,6 +9,7 @@ import type { CartData, CartItem } from '@lightbuy/shared';
 import { Image } from 'expo-image';
 import { Button, Checkbox, Text } from 'react-native-paper';
 
+import { trackClick } from '../analytics';
 import { getCart, removeCartItem, updateCartItem } from '../api/cart';
 import { isApiError } from '../api/errors';
 import {
@@ -300,7 +301,10 @@ export function CartScreen() {
           <Button
             mode="contained"
             disabled={!hasSelected || busyIds.size > 0}
-            onPress={() => navigation.navigate('Checkout', { source: 'cart' })}
+            onPress={() => {
+              trackClick('cart', 'checkout');
+              navigation.navigate('Checkout', { source: 'cart' });
+            }}
             contentStyle={styles.checkoutContent}
           >
             去结算

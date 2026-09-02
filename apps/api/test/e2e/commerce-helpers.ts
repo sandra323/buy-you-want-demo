@@ -1,8 +1,6 @@
 import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
-import {
-  PRODUCT_STATUS_ON_SALE,
-} from '../../src/products/product.entity';
+import { PRODUCT_STATUS_ON_SALE } from '../../src/products/product.entity';
 
 export async function insertProduct(
   dataSource: DataSource,

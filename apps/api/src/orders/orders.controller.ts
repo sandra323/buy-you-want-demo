@@ -10,6 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
   ApiNotFoundResponse,
@@ -34,8 +35,15 @@ import {
 } from './order-swagger.examples';
 import { OrdersService } from './orders.service';
 
+const ORDER_VALIDATION_EXAMPLE = {
+  code: 40001,
+  message: '参数校验失败',
+  data: null,
+};
+
 @ApiTags('orders')
 @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+@ApiUnauthorizedResponse({ schema: { example: ORDER_UNAUTHORIZED_EXAMPLE } })
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
@@ -48,6 +56,7 @@ export class OrdersController {
       'fromCart 与 items 互斥。价格与库存一律服务端计算；库存不足整单回滚。',
   })
   @ApiOkResponse({ schema: { example: ORDER_DETAIL_EXAMPLE } })
+  @ApiBadRequestResponse({ schema: { example: ORDER_VALIDATION_EXAMPLE } })
   @ApiNotFoundResponse({ schema: { example: ORDER_NOT_FOUND_EXAMPLE } })
   @ApiConflictResponse({ schema: { example: ORDER_CONFLICT_STOCK_EXAMPLE } })
   @ApiUnauthorizedResponse({ schema: { example: ORDER_UNAUTHORIZED_EXAMPLE } })
@@ -58,6 +67,7 @@ export class OrdersController {
   @Get()
   @ApiOperation({ summary: '订单分页列表' })
   @ApiOkResponse({ schema: { example: ORDER_LIST_EXAMPLE } })
+  @ApiBadRequestResponse({ schema: { example: ORDER_VALIDATION_EXAMPLE } })
   list(@CurrentUser() user: AccessUser, @Query() query: OrderListQueryDto) {
     return this.ordersService.list(user.id, query);
   }
@@ -66,6 +76,7 @@ export class OrdersController {
   @ApiOperation({ summary: '订单详情（含快照）' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ schema: { example: ORDER_DETAIL_EXAMPLE } })
+  @ApiBadRequestResponse({ schema: { example: ORDER_VALIDATION_EXAMPLE } })
   @ApiNotFoundResponse({ schema: { example: ORDER_NOT_FOUND_EXAMPLE } })
   detail(
     @CurrentUser() user: AccessUser,
@@ -79,6 +90,7 @@ export class OrdersController {
   @ApiOperation({ summary: '模拟支付（仅待支付）' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ schema: { example: ORDER_DETAIL_EXAMPLE } })
+  @ApiBadRequestResponse({ schema: { example: ORDER_VALIDATION_EXAMPLE } })
   @ApiConflictResponse({ schema: { example: ORDER_CONFLICT_STATE_EXAMPLE } })
   @ApiNotFoundResponse({ schema: { example: ORDER_NOT_FOUND_EXAMPLE } })
   pay(@CurrentUser() user: AccessUser, @Param('id', ParseUUIDPipe) id: string) {
@@ -90,6 +102,7 @@ export class OrdersController {
   @ApiOperation({ summary: '取消待支付订单并回库存' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ schema: { example: ORDER_DETAIL_EXAMPLE } })
+  @ApiBadRequestResponse({ schema: { example: ORDER_VALIDATION_EXAMPLE } })
   @ApiConflictResponse({ schema: { example: ORDER_CONFLICT_STATE_EXAMPLE } })
   @ApiNotFoundResponse({ schema: { example: ORDER_NOT_FOUND_EXAMPLE } })
   cancel(

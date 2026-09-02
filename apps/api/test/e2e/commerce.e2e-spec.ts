@@ -131,18 +131,76 @@ describe('commerce flow + IDOR (Tasks 5.6–5.7)', () => {
     expect(detail.body.data.status).toBe(2);
   });
 
-  it('Swagger documents cart, addresses, and order create/pay/cancel/list/detail', async () => {
+  it('Swagger documents the complete MVP contract and auth boundaries', async () => {
     const res = await http().get(swaggerJsonPath());
     expect(res.status).toBe(200);
-    const paths = res.body.paths as Record<string, unknown>;
+    type Operation = {
+      responses?: Record<string, unknown>;
+      security?: Array<Record<string, unknown>>;
+      parameters?: Array<{
+        name?: string;
+        schema?: { enum?: unknown[] };
+      }>;
+    };
+    const spec = res.body as {
+      info: { version: string };
+      paths: Record<string, Record<string, Operation>>;
+    };
+    const routes: Array<[string, string, boolean]> = [
+      ['/health', 'get', false],
+      ['/auth/register', 'post', false],
+      ['/auth/login', 'post', false],
+      ['/auth/refresh', 'post', false],
+      ['/auth/logout', 'post', true],
+      ['/users/me', 'get', true],
+      ['/home', 'get', false],
+      ['/products', 'get', false],
+      ['/products/{id}', 'get', false],
+      ['/cart', 'get', true],
+      ['/cart', 'post', true],
+      ['/cart/{id}', 'patch', true],
+      ['/cart/{id}', 'delete', true],
+      ['/addresses', 'get', true],
+      ['/addresses', 'post', true],
+      ['/addresses/{id}', 'put', true],
+      ['/addresses/{id}', 'delete', true],
+      ['/orders', 'get', true],
+      ['/orders', 'post', true],
+      ['/orders/{id}', 'get', true],
+      ['/orders/{id}/pay', 'post', true],
+      ['/orders/{id}/cancel', 'post', true],
+    ];
 
-    expect(paths[documentedApiPath('/cart')]).toBeDefined();
-    expect(paths[documentedApiPath('/cart/{id}')]).toBeDefined();
-    expect(paths[documentedApiPath('/addresses')]).toBeDefined();
-    expect(paths[documentedApiPath('/addresses/{id}')]).toBeDefined();
-    expect(paths[documentedApiPath('/orders')]).toBeDefined();
-    expect(paths[documentedApiPath('/orders/{id}')]).toBeDefined();
-    expect(paths[documentedApiPath('/orders/{id}/pay')]).toBeDefined();
-    expect(paths[documentedApiPath('/orders/{id}/cancel')]).toBeDefined();
+    expect(spec.info.version).toBe('1.0.0');
+    expect(spec.paths[documentedApiPath('/auth/session')]).toBeUndefined();
+    for (const [path, method, protectedRoute] of routes) {
+      const operation = spec.paths[documentedApiPath(path)]?.[method];
+      expect(operation).toBeDefined();
+      expect(operation?.responses?.['200']).toBeDefined();
+      if (protectedRoute) {
+        expect(operation?.security).toContainEqual({
+          'access-token': [],
+        });
+        expect(operation?.responses?.['401']).toBeDefined();
+      } else {
+        expect(operation?.security).toBeUndefined();
+      }
+    }
+
+    const orderList = spec.paths[documentedApiPath('/orders')]?.get;
+    const statusParameter = orderList?.parameters?.find(
+      (parameter) => parameter.name === 'status',
+    );
+    expect(statusParameter?.schema?.enum).toEqual([
+      'all',
+      '0',
+      '1',
+      '2',
+      '3',
+      '4',
+    ]);
+    expect(JSON.stringify(orderList?.responses?.['200'])).toContain(
+      '"status":4',
+    );
   });
 });

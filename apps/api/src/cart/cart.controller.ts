@@ -11,6 +11,7 @@ import {
   Post,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
   ApiNotFoundResponse,
@@ -32,8 +33,15 @@ import {
   CART_UNAUTHORIZED_EXAMPLE,
 } from './cart-swagger.examples';
 
+const CART_VALIDATION_EXAMPLE = {
+  code: 40001,
+  message: '参数校验失败',
+  data: null,
+};
+
 @ApiTags('cart')
 @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+@ApiUnauthorizedResponse({ schema: { example: CART_UNAUTHORIZED_EXAMPLE } })
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
@@ -54,6 +62,7 @@ export class CartController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '加购（按 user+product 唯一键累加数量）' })
   @ApiOkResponse({ schema: { example: CART_OK_EXAMPLE } })
+  @ApiBadRequestResponse({ schema: { example: CART_VALIDATION_EXAMPLE } })
   @ApiNotFoundResponse({ schema: { example: CART_NOT_FOUND_EXAMPLE } })
   @ApiConflictResponse({ schema: { example: CART_STOCK_EXAMPLE } })
   @ApiUnauthorizedResponse({ schema: { example: CART_UNAUTHORIZED_EXAMPLE } })
@@ -66,6 +75,7 @@ export class CartController {
   @ApiOperation({ summary: '改数量或选中；失效行不可加数量' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ schema: { example: CART_OK_EXAMPLE } })
+  @ApiBadRequestResponse({ schema: { example: CART_VALIDATION_EXAMPLE } })
   @ApiNotFoundResponse({ schema: { example: CART_NOT_FOUND_EXAMPLE } })
   @ApiConflictResponse({ schema: { example: CART_STOCK_EXAMPLE } })
   patch(
@@ -81,6 +91,7 @@ export class CartController {
   @ApiOperation({ summary: '删除自己的购物车行' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ schema: { example: CART_OK_EXAMPLE } })
+  @ApiBadRequestResponse({ schema: { example: CART_VALIDATION_EXAMPLE } })
   @ApiNotFoundResponse({ schema: { example: CART_NOT_FOUND_EXAMPLE } })
   remove(
     @CurrentUser() user: AccessUser,

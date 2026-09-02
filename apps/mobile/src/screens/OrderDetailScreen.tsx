@@ -18,6 +18,7 @@ import {
   Text,
 } from 'react-native-paper';
 
+import { trackClick, trackPaymentSucceeded } from '../analytics';
 import { isApiError } from '../api/errors';
 import { cancelOrder, getOrder, payOrder } from '../api/order';
 import {
@@ -84,6 +85,9 @@ export function OrderDetailScreen() {
     if (!order || order.status !== 0 || busyAction) {
       return;
     }
+    if (action === 'pay') {
+      trackClick('order_detail', 'pay');
+    }
     setBusyAction(action);
     try {
       const next =
@@ -92,6 +96,9 @@ export function OrderDetailScreen() {
           : await cancelOrder(order.id);
       setOrder(next);
       showToast(action === 'pay' ? '支付成功' : '订单已取消');
+      if (action === 'pay') {
+        trackPaymentSucceeded(order.id);
+      }
     } catch (error) {
       showToast(
         isApiError(error)
@@ -177,7 +184,7 @@ export function OrderDetailScreen() {
 
         <View style={styles.section}>
           <Text variant="titleMedium">收货信息</Text>
-          <View style={styles.receiver}>
+          <View accessibilityLabel="ph-no-capture" style={styles.receiver}>
             <Text variant="titleSmall">
               {receiver.receiverName}　{receiver.phone}
             </Text>

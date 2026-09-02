@@ -47,12 +47,22 @@ export function MeScreen() {
 
   if (!user) {
     return (
-      <View style={styles.page}>
-        <LoginGate
-          title="登录后查看我的"
-          description="订单、地址与设置将在登录后可用"
-          ctaLabel="去登录"
-        />
+      <View style={styles.guest}>
+        <View style={styles.page}>
+          <LoginGate
+            title="登录后查看我的"
+            description="订单与地址将在登录后可用"
+            ctaLabel="去登录"
+          />
+        </View>
+        <Button
+          mode="text"
+          icon="cog-outline"
+          onPress={() => navigation.navigate('Settings')}
+          contentStyle={styles.ctaContent}
+        >
+          数据分析设置
+        </Button>
       </View>
     );
   }
@@ -96,6 +106,11 @@ export function MeScreen() {
 }
 
 const styles = StyleSheet.create({
+  guest: {
+    flex: 1,
+    backgroundColor: tokens.color.background,
+    paddingBottom: tokens.space.lg,
+  },
   page: {
     flex: 1,
     backgroundColor: tokens.color.background,

@@ -1,5 +1,10 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Public } from '../auth/public.decorator';
 import { HomeQueryDto } from './dto/catalog-query.dto';
 import { CATALOG_LIST_EXAMPLE } from './catalog-swagger.examples';
@@ -16,6 +21,11 @@ export class HomeController {
   @ApiOkResponse({
     description: '业务 envelope，data 为分页商品卡片',
     schema: { example: CATALOG_LIST_EXAMPLE },
+  })
+  @ApiBadRequestResponse({
+    schema: {
+      example: { code: 40001, message: '参数校验失败', data: null },
+    },
   })
   list(@Query() query: HomeQueryDto) {
     return this.productsService.list(query);

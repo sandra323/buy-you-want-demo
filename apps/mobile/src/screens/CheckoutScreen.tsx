@@ -24,6 +24,7 @@ import {
   Text,
 } from 'react-native-paper';
 
+import { trackClick, trackOrderCreated } from '../analytics';
 import { listAddresses } from '../api/address';
 import { getCart } from '../api/cart';
 import { getProduct } from '../api/catalog';
@@ -133,11 +134,16 @@ export function CheckoutScreen() {
     if (!canSubmit || submittingRef.current) {
       return;
     }
+    trackClick('checkout', 'checkout');
     submittingRef.current = true;
     setIsSubmitting(true);
     try {
       const order = await createOrder(
         buildCreateOrderRequest(selectedAddressId, route.params),
+      );
+      trackOrderCreated(
+        order.id,
+        route.params.source === 'cart' ? 'cart' : 'buy_now',
       );
       if (route.params.source === 'cart') {
         void getCart()

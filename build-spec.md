@@ -118,7 +118,7 @@ Interaction notes from the PRD that the UI kit must support: skeleton instead of
 | bcryptjs cost 10                                                       | Password hash. Never reversible crypto.                                                                                                      |
 | class-validator + ValidationPipe (`whitelist`, `forbidNonWhitelisted`) | All body/query DTOs.                                                                                                                         |
 | @nestjs/throttler                                                      | Register / login / refresh only (e.g. 10/min/IP). Office NAT may share one IP — document that reviewers can raise the limit in `.env`.       |
-| @nestjs/schedule                                                       | Unpaid cancel (1 min) and paid complete (10 min). Cron calls `OrderJobs.tick(now)` every 60s. **One API replica only** (no leader election). |
+| @nestjs/schedule                                                       | Unpaid cancel (1 min), paid → awaiting receipt (~3 min), then complete (~5 min). Cron calls `OrderJobs.tick(now)` every 60s. **One API replica only** (no leader election). |
 | @nestjs/swagger                                                        | `/api/docs` for reviewers.                                                                                                                   |
 | nestjs-pino (or Nest Logger + JSON in prod)                            | Request id + user id on API logs.                                                                                                            |
 
@@ -170,7 +170,7 @@ Not used. Do not add LLM features.
 - Cart: CRUD, select/select-all, live totals, invalid (off-shelf / stock 0) rows greyed and not checkoutable. Login required.
 - Address: CRUD + default. Snapshot into the order at create time.
 - Orders: create (from cart selected lines **or** buy-now SKU), list by status tab, detail, mock pay, cancel if unpaid.
-- Jobs: unpaid > 1 minute → cancel + restock; paid > 10 minutes → status completed.
+- Jobs: unpaid > 1 minute → cancel + restock; paid > ~3 minutes → awaiting receipt; awaiting receipt > ~5 minutes → completed.
 - Guest vs member gates (see §9).
 - Analytics wrapper + settings opt-out.
 - Swagger, seed products, README one-command run.
@@ -331,7 +331,7 @@ Not used. Do not add LLM features.
 **State machine (always conditional update):**
 
 ```
-0 pending_pay --pay--> 1 paid --job 10min--> 2 completed
+0 pending_pay --pay--> 1 paid --job ~3min--> 4 awaiting_receipt --job ~5min--> 2 completed
 0 pending_pay --cancel or job 1min--> 3 cancelled  (+ restock)
 ```
 
@@ -339,14 +339,15 @@ Not used. Do not add LLM features.
 
 - Pay: expected `0`, next `1`, set `paid_at`, increment sales in SQL in the same transaction: `UPDATE products SET sales = sales + :qty WHERE id = :id` (never read–modify–write in JS).
 - Cancel / timeout: expected `0`, next `3`, set `cancelled_at`, `stock += qty`.
-- Complete job: expected `1`, next `2`, set `completed_at`.
+- Awaiting-receipt job: expected `1`, next `4`, set `awaiting_receipt_at`.
+- Complete job: expected `4`, next `2`, set `completed_at`.
 
 `order_no`: `LB` + `yyyyMMddHHmmss` + 6 CSPRNG digits (or nanoid). Unique index; retry a few times on collision.
 
 ### jobs (`OrderJobs` in API)
 
 - **Purpose**: time-based transitions.
-- **Responsibilities**: `tick(now: Date)` runs both scans (`pending_pay` with `created_at <= now-60s` → cancel+restock via the same service as user cancel; `paid` with `paid_at <= now-10min` → complete). Cron is only `EVERY_MINUTE` → `tick(new Date())`. Tests **must** call `tick` with an injected clock — never sleep 10 minutes in e2e.
+- **Responsibilities**: `tick(now: Date)` runs three scans (`pending_pay` with `created_at <= now-60s` → cancel+restock via the same service as user cancel; `paid` with `paid_at <= now-3min` → awaiting receipt; `awaiting_receipt` with `awaiting_receipt_at <= now-5min` → complete). Cron is only `EVERY_MINUTE` → `tick(new Date())`. Tests **must** call `tick` with an injected clock — never sleep the live timeouts in e2e.
 - **In/Out**: none (cron). **Deps**: order service. Process rows in small batches (e.g. 100). Do not run two API processes.
 
 ### http-client (`apps/mobile/src/api`)
@@ -412,7 +413,7 @@ All PK `id` = `char(36)` UUID v4 (or `varchar(36)`). Timestamps `created_at` / `
 ### orders
 
 - Purpose: order header.
-- Fields: `order_no` varchar(32) unique, `user_id` FK, `total_amount` decimal(10,2), `status` tinyint (`0` pending_pay, `1` paid, `2` completed, `3` cancelled), `receiver_snapshot` json, `paid_at` / `completed_at` / `cancelled_at` datetime null.
+- Fields: `order_no` varchar(32) unique, `user_id` FK, `total_amount` decimal(10,2), `status` tinyint (`0` pending_pay, `1` paid/to_ship, `4` awaiting_receipt, `2` completed, `3` cancelled), `receiver_snapshot` json, `paid_at` / `awaiting_receipt_at` / `completed_at` / `cancelled_at` datetime null.
 - Index: `(user_id, status, created_at)`.
 - `receiver_snapshot` shape: `{ receiverName, phone, province, city, district, detail }`.
 
@@ -538,7 +539,7 @@ User object in auth payloads: `{ id, phoneMask, nickname, avatar }` where `phone
 
 **GET `/api/v1/orders`**
 
-- Query: `status?` (`all` omit, or `0|1|2|3`), `page`, `pageSize`.
+- Query: `status?` (`all` omit, or `0|1|2|3|4`), `page`, `pageSize`.
 
 **GET `/api/v1/orders/:id`** — header + items + snapshots.
 
@@ -631,7 +632,7 @@ Checkout with no addresses: empty state + CTA to AddressEdit; do not POST orders
 
 ### Secret management
 
-- Env: `JWT_SECRET` (≥32 bytes), `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL`, `ORDER_PAY_TIMEOUT_SEC`, `ORDER_COMPLETE_AFTER_SEC`, `DATABASE_URL`, `SENTRY_DSN` (api), `SENTRY_RELEASE`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_POSTHOG_KEY`, `EXPO_PUBLIC_API_URL`, `SEED_ON_BOOT`.
+- Env: `JWT_SECRET` (≥32 bytes), `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL`, `ORDER_PAY_TIMEOUT_SEC`, `ORDER_SHIP_AFTER_SEC`, `ORDER_AWAITING_RECEIPT_AFTER_SEC`, `DATABASE_URL`, `SENTRY_DSN` (api), `SENTRY_RELEASE`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_POSTHOG_KEY`, `EXPO_PUBLIC_POSTHOG_HOST`, `EXPO_PUBLIC_TELEMETRY_IN_DEV`, `EXPO_PUBLIC_API_URL`, `SEED_ON_BOOT`.
 - Never commit `.env`. Rotate `JWT_SECRET` invalidates all access tokens (acceptable for demo).
 
 ### Input validation
@@ -752,7 +753,7 @@ Checkout with no addresses: empty state + CTA to AddressEdit; do not POST orders
 12. **Cart / address / checkout / order screens** + mock pay + Chinese empty/error copy.
 13. **Analytics module**: Sentry + PostHog init, identify/reset, event map, `login_success` silent, CTA-only `click`, opt-out in Settings, `__DEV__` off by default.
 14. **CI**: GitHub Actions (lint, typecheck, API tests with MySQL service, mobile Jest). EAS `development` / `preview` profiles.
-15. **README + Swagger polish + PRD appendix B checklist** (dual-token, oversell, 1 min cancel, 10 min complete, telemetry opt-out). Point README at this spec and `product-brief.md` (not the deleted self-built analytics SDK).
+15. **README + Swagger polish + PRD appendix B checklist** (dual-token, oversell, 1 min cancel, 3 min awaiting receipt, 5 min complete, telemetry opt-out). Point README at this spec and `product-brief.md` (not the deleted self-built analytics SDK).
 
 This maps to PRD milestones M1 (1–4), M2 (5, 8, 11), M3 (6–7, 12), M4 (13), M5 (14–15).
 

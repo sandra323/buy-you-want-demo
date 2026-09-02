@@ -71,7 +71,10 @@ describe('orders API (Tasks 5.3–5.5)', () => {
     });
     const addressId = await createAddress(user.accessToken);
 
-    await http().post('/api/v1/cart').set(auth).send({ productId, quantity: 2 });
+    await http()
+      .post('/api/v1/cart')
+      .set(auth)
+      .send({ productId, quantity: 2 });
 
     const both = await http()
       .post('/api/v1/orders')
@@ -84,10 +87,10 @@ describe('orders API (Tasks 5.3–5.5)', () => {
     expect(both.status).toBe(400);
     expect(both.body.code).toBe(ErrorCode.VALIDATION);
 
-    const missingAddress = await http()
-      .post('/api/v1/orders')
-      .set(auth)
-      .send({ addressId: 'c0ffee00-0000-4000-8000-00000000dead', fromCart: true });
+    const missingAddress = await http().post('/api/v1/orders').set(auth).send({
+      addressId: 'c0ffee00-0000-4000-8000-00000000dead',
+      fromCart: true,
+    });
     expect(missingAddress.status).toBe(404);
     expect(missingAddress.body.code).toBe(ErrorCode.NOT_FOUND);
 
@@ -187,11 +190,20 @@ describe('orders API (Tasks 5.3–5.5)', () => {
     const productId = await insertProduct(handles.dataSource, { stock: 10 });
     const addressId = await createAddress(user.accessToken);
 
-    await http().post('/api/v1/cart').set(auth).send({ productId, quantity: 1 });
+    await http()
+      .post('/api/v1/cart')
+      .set(auth)
+      .send({ productId, quantity: 1 });
 
     const [a, b] = await Promise.all([
-      http().post('/api/v1/orders').set(auth).send({ addressId, fromCart: true }),
-      http().post('/api/v1/orders').set(auth).send({ addressId, fromCart: true }),
+      http()
+        .post('/api/v1/orders')
+        .set(auth)
+        .send({ addressId, fromCart: true }),
+      http()
+        .post('/api/v1/orders')
+        .set(auth)
+        .send({ addressId, fromCart: true }),
     ]);
 
     const statuses = [a.status, b.status].sort();
@@ -257,12 +269,8 @@ describe('orders API (Tasks 5.3–5.5)', () => {
       });
 
     const [pay, cancel] = await Promise.all([
-      http()
-        .post(`/api/v1/orders/${created2.body.data.id}/pay`)
-        .set(auth),
-      http()
-        .post(`/api/v1/orders/${created2.body.data.id}/cancel`)
-        .set(auth),
+      http().post(`/api/v1/orders/${created2.body.data.id}/pay`).set(auth),
+      http().post(`/api/v1/orders/${created2.body.data.id}/cancel`).set(auth),
     ]);
     const pair = [pay.status, cancel.status].sort();
     expect(pair).toEqual([200, 409]);
@@ -291,8 +299,12 @@ describe('orders API (Tasks 5.3–5.5)', () => {
     expect(tooBig.status).toBe(400);
     expect(tooBig.body.code).toBe(ErrorCode.VALIDATION);
 
-    const page1 = await http().get('/api/v1/orders?page=1&pageSize=10').set(auth);
-    const page2 = await http().get('/api/v1/orders?page=2&pageSize=10').set(auth);
+    const page1 = await http()
+      .get('/api/v1/orders?page=1&pageSize=10')
+      .set(auth);
+    const page2 = await http()
+      .get('/api/v1/orders?page=2&pageSize=10')
+      .set(auth);
     expect(page1.body.data.items).toHaveLength(10);
     expect(page2.body.data.items).toHaveLength(1);
     expect(page1.body.data.total).toBe(11);

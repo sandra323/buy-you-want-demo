@@ -18,6 +18,11 @@ import { ErrorCode, type ProductDetail } from '@lightbuy/shared';
 import { Image } from 'expo-image';
 import { Button, Snackbar, Text } from 'react-native-paper';
 
+import {
+  trackAddToCartSucceeded,
+  trackClick,
+  trackProductViewed,
+} from '../analytics';
 import { addCartItem } from '../api/cart';
 import { getProduct } from '../api/catalog';
 import { isApiError } from '../api/errors';
@@ -68,6 +73,7 @@ export function ProductDetailScreen() {
   const requestIdRef = useRef(0);
   const actionInFlightRef = useRef(false);
   const awaitingLoginRef = useRef(false);
+  const viewedProductRef = useRef<string | null>(null);
   const addButtonRef = useRef<View>(null);
   const addButtonPointRef = useRef<ScreenPoint | null>(null);
 
@@ -99,6 +105,10 @@ export function ProductDetailScreen() {
       }
       setProduct(data);
       setQuantity(1);
+      if (viewedProductRef.current !== productId) {
+        trackProductViewed(productId, route.params.from ?? 'unknown');
+        viewedProductRef.current = productId;
+      }
     } catch (error) {
       if (requestId !== requestIdRef.current) {
         return;
@@ -114,7 +124,7 @@ export function ProductDetailScreen() {
         setIsLoading(false);
       }
     }
-  }, [productId]);
+  }, [productId, route.params.from]);
 
   useEffect(() => {
     void loadProduct();
@@ -144,6 +154,7 @@ export function ProductDetailScreen() {
           setCartBadge(cartBadgeCount(cart.items));
           notifyAddSuccess(addButtonPointRef.current);
           setSnackbarMessage('已加入购物车');
+          trackAddToCartSucceeded(action.productId, action.quantity);
         } else {
           navigation.navigate('Checkout', {
             source: 'buyNow',
@@ -191,6 +202,10 @@ export function ProductDetailScreen() {
       if (!product || product.stock === 0 || isAdding) {
         return;
       }
+      trackClick(
+        'product_detail',
+        type === 'add_to_cart' ? 'add_to_cart' : 'buy_now',
+      );
       const action: PendingAction = { type, productId, quantity };
       // 已登录直接执行，避免 setPending 后再被 effect 跑第二次（立即购买会叠两个结算页）。
       if (!user) {

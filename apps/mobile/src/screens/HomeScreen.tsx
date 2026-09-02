@@ -15,6 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Snackbar, Text } from 'react-native-paper';
 
+import { trackExposure as trackProductExposure } from '../analytics';
 import { getHome } from '../api/catalog';
 import {
   EmptyState,
@@ -32,8 +33,6 @@ type HomeNav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
-
-const onProductExposure = (_productId: string): void => undefined;
 
 export function HomeScreen() {
   const navigation = useNavigation<HomeNav>();
@@ -57,6 +56,15 @@ export function HomeScreen() {
     dismissError,
   } = useProductPagination(fetchPage);
   const productIds = useMemo(() => items.map((item) => item.id), [items]);
+  const onProductExposure = useCallback(
+    (productId: string) => {
+      const index = productIds.indexOf(productId);
+      if (index >= 0) {
+        trackProductExposure('home_products', productId, index + 1);
+      }
+    },
+    [productIds],
+  );
   const {
     onViewportLayout,
     onScroll: trackExposure,
@@ -120,7 +128,10 @@ export function HomeScreen() {
           <ProductWaterfall
             products={items}
             onProductPress={(productId) =>
-              navigation.navigate('ProductDetail', { productId })
+              navigation.navigate('ProductDetail', {
+                productId,
+                from: 'home',
+              })
             }
             onProductLayout={onProductLayout}
           />

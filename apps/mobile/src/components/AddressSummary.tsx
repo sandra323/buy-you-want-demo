@@ -10,7 +10,7 @@ type AddressSummaryProps = {
 
 export function AddressSummary({ address }: AddressSummaryProps) {
   return (
-    <View style={styles.body}>
+    <View accessibilityLabel="ph-no-capture" style={styles.body}>
       <View style={styles.person}>
         <Text variant="titleSmall">{address.receiverName}</Text>
         <Text style={styles.phone}>{address.phone}</Text>

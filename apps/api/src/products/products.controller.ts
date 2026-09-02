@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -38,6 +39,11 @@ export class ProductsController {
       ],
     },
   })
+  @ApiBadRequestResponse({
+    schema: {
+      example: { code: 40001, message: '参数校验失败', data: null },
+    },
+  })
   list(@Query() query: ProductsQueryDto) {
     return this.productsService.list(query);
   }
@@ -53,7 +59,12 @@ export class ProductsController {
     description: '不存在或已下架',
     schema: { example: CATALOG_NOT_FOUND_EXAMPLE },
   })
-  detail(@Param('id') id: string) {
+  @ApiBadRequestResponse({
+    schema: {
+      example: { code: 40001, message: '参数校验失败', data: null },
+    },
+  })
+  detail(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.getById(id);
   }
 }

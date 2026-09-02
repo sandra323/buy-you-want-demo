@@ -4,11 +4,13 @@ import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import { trackClick, trackLoginSucceeded } from '../analytics';
 import { login } from '../api/auth';
 import { isApiError } from '../api/errors';
 import { persistSession } from '../auth/session';
 import type { RootStackParamList } from '../navigation/types';
 import { tokens } from '../theme';
+import { canTrackAuthClick } from './auth-tracking';
 import { validatePassword, validatePhone } from './auth-validation';
 import { dismissAuthScreens } from './dismiss-auth';
 
@@ -28,14 +30,16 @@ export function LoginScreen() {
     setPhoneError(nextPhoneError);
     setPasswordError(nextPasswordError);
     setFormError(undefined);
-    if (nextPhoneError || nextPasswordError) {
+    if (!canTrackAuthClick(nextPhoneError, nextPasswordError)) {
       return;
     }
+    trackClick('login', 'login');
 
     setSubmitting(true);
     try {
       const data = await login({ phone, password });
       await persistSession(data);
+      trackLoginSucceeded('password');
       dismissAuthScreens(navigation);
     } catch (error) {
       setFormError(isApiError(error) ? error.message : '登录失败，请稍后重试');

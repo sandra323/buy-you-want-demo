@@ -9,10 +9,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiExcludeEndpoint,
   ApiOkResponse,
   ApiOperation,
+  ApiResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -39,6 +42,18 @@ const AUTH_TOKENS_EXAMPLE = {
   },
 };
 
+const VALIDATION_EXAMPLE = {
+  code: 40001,
+  message: '参数校验失败',
+  data: null,
+};
+
+const RATE_LIMIT_EXAMPLE = {
+  code: 42900,
+  message: '请求过于频繁',
+  data: null,
+};
+
 /** 注册/登录/刷新公开且限流；成功走 HTTP 200 + 业务 envelope。 */
 @ApiTags('auth')
 @Controller('auth')
@@ -51,6 +66,16 @@ export class AuthController {
   @Post('register')
   @ApiOperation({ summary: '注册并签发双 Token' })
   @ApiOkResponse({ schema: { example: AUTH_TOKENS_EXAMPLE } })
+  @ApiBadRequestResponse({ schema: { example: VALIDATION_EXAMPLE } })
+  @ApiConflictResponse({
+    schema: {
+      example: { code: 40202, message: '手机号已注册', data: null },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    schema: { example: RATE_LIMIT_EXAMPLE },
+  })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -61,6 +86,20 @@ export class AuthController {
   @Post('login')
   @ApiOperation({ summary: '登录并签发双 Token' })
   @ApiOkResponse({ schema: { example: AUTH_TOKENS_EXAMPLE } })
+  @ApiBadRequestResponse({
+    schema: {
+      oneOf: [
+        { example: VALIDATION_EXAMPLE },
+        {
+          example: { code: 40201, message: '手机号或密码错误', data: null },
+        },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    schema: { example: RATE_LIMIT_EXAMPLE },
+  })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
@@ -71,6 +110,23 @@ export class AuthController {
   @Post('refresh')
   @ApiOperation({ summary: '旋转 refresh，签发新的双 Token' })
   @ApiOkResponse({ schema: { example: AUTH_TOKENS_EXAMPLE } })
+  @ApiBadRequestResponse({ schema: { example: VALIDATION_EXAMPLE } })
+  @ApiUnauthorizedResponse({
+    schema: {
+      oneOf: [
+        {
+          example: { code: 40102, message: '登录状态已失效', data: null },
+        },
+        {
+          example: { code: 40103, message: '登录状态已过期', data: null },
+        },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    schema: { example: RATE_LIMIT_EXAMPLE },
+  })
   refresh(@Body() dto: RefreshDto) {
     return this.authService.refresh(dto.refreshToken);
   }

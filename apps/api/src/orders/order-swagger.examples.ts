@@ -23,6 +23,14 @@ const ORDER_EXAMPLE = {
   createdAt: '2026-01-01T12:00:00.000Z',
 };
 
+const AWAITING_RECEIPT_ORDER_EXAMPLE = {
+  ...ORDER_EXAMPLE,
+  id: 'dddddddd-dddd-4ddd-8ddd-ddddddddddd2',
+  orderNo: 'LB20260101120300123457',
+  status: 4,
+  createdAt: '2026-01-01T12:03:00.000Z',
+};
+
 export const ORDER_DETAIL_EXAMPLE = {
   code: 0,
   message: 'ok',
@@ -33,10 +41,10 @@ export const ORDER_LIST_EXAMPLE = {
   code: 0,
   message: 'ok',
   data: {
-    items: [ORDER_EXAMPLE],
+    items: [ORDER_EXAMPLE, AWAITING_RECEIPT_ORDER_EXAMPLE],
     page: 1,
     pageSize: 10,
-    total: 1,
+    total: 2,
   },
 };
 

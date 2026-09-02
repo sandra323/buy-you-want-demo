@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   NativeScrollEvent,
@@ -15,6 +15,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { PaginatedData, ProductCard } from '@lightbuy/shared';
 import { Snackbar, Text, TextInput } from 'react-native-paper';
 
+import {
+  trackClick,
+  trackExposure as trackProductExposure,
+  trackSearch,
+} from '../analytics';
+import { consumePendingSearchReport } from '../analytics/search-report';
 import { listProducts } from '../api/catalog';
 import {
   EmptyState,
@@ -34,8 +40,6 @@ type SearchPage = PaginatedData<ProductCard> & {
   isFallback?: boolean;
 };
 
-const onProductExposure = (_productId: string): void => undefined;
-
 export function SearchScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -47,7 +51,9 @@ export function SearchScreen() {
 
   const [input, setInput] = useState('');
   const [submittedKeyword, setSubmittedKeyword] = useState<string | null>(null);
+  const [searchRequestId, setSearchRequestId] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
+  const pendingSearchRef = useRef<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,9 +75,27 @@ export function SearchScreen() {
   );
 
   const fetchPage = useCallback(
-    async (page: number): Promise<SearchPage> =>
-      listProducts({ keyword: submittedKeyword ?? undefined, sort, page }),
-    [sort, submittedKeyword],
+    async (page: number): Promise<SearchPage> => {
+      const keyword = submittedKeyword;
+      const data = await listProducts({
+        keyword: keyword ?? undefined,
+        sort,
+        page,
+      });
+      const { report, nextPending } = consumePendingSearchReport({
+        page,
+        requestKeyword: keyword,
+        pendingKeyword: pendingSearchRef.current,
+        resultCount: data.total,
+        isFallback: data.isFallback,
+      });
+      pendingSearchRef.current = nextPending;
+      if (report) {
+        trackSearch(report.query, report.resultCount);
+      }
+      return data;
+    },
+    [searchRequestId, sort, submittedKeyword],
   );
 
   const {
@@ -88,6 +112,15 @@ export function SearchScreen() {
     dismissError,
   } = useProductPagination<SearchPage>(fetchPage, submittedKeyword !== null);
   const productIds = useMemo(() => items.map((item) => item.id), [items]);
+  const onProductExposure = useCallback(
+    (productId: string) => {
+      const index = productIds.indexOf(productId);
+      if (index >= 0) {
+        trackProductExposure('search_results', productId, index + 1);
+      }
+    },
+    [productIds],
+  );
   const {
     onViewportLayout,
     onScroll: trackExposure,
@@ -95,14 +128,19 @@ export function SearchScreen() {
   } = useProductExposure({ productIds, onExposure: onProductExposure });
 
   const submitSearch = useCallback(
-    (value: string) => {
+    (value: string, isSubmitCta = true) => {
       const keyword = value.trim();
       if (!keyword) {
         return;
       }
+      if (isSubmitCta) {
+        trackClick('search', 'search_submit');
+      }
+      pendingSearchRef.current = keyword;
       setInput(keyword);
       setKeyword(keyword);
       setSubmittedKeyword(keyword);
+      setSearchRequestId((requestId) => requestId + 1);
       if (user) {
         void addSearchHistory(keyword).then(setHistory);
       }
@@ -183,7 +221,7 @@ export function SearchScreen() {
                 <Pressable
                   key={keyword}
                   accessibilityRole="button"
-                  onPress={() => submitSearch(keyword)}
+                  onPress={() => submitSearch(keyword, false)}
                   style={({ pressed }) => [
                     styles.historyItem,
                     pressed ? styles.pressed : null,
@@ -231,7 +269,10 @@ export function SearchScreen() {
           <ProductWaterfall
             products={items}
             onProductPress={(productId) =>
-              navigation.navigate('ProductDetail', { productId })
+              navigation.navigate('ProductDetail', {
+                productId,
+                from: 'search',
+              })
             }
             onProductLayout={onProductLayout}
           />

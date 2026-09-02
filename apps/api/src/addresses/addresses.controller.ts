@@ -11,6 +11,7 @@ import {
   Put,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -48,8 +49,15 @@ const NOT_FOUND_EXAMPLE = {
   data: null,
 };
 
+const VALIDATION_EXAMPLE = {
+  code: 40001,
+  message: '参数校验失败',
+  data: null,
+};
+
 @ApiTags('addresses')
 @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+@ApiUnauthorizedResponse({ schema: { example: UNAUTHORIZED_EXAMPLE } })
 @Controller('addresses')
 export class AddressesController {
   constructor(private readonly addressesService: AddressesService) {}
@@ -72,6 +80,7 @@ export class AddressesController {
   @ApiOkResponse({
     schema: { example: { code: 0, message: 'ok', data: ADDRESS_EXAMPLE } },
   })
+  @ApiBadRequestResponse({ schema: { example: VALIDATION_EXAMPLE } })
   create(@CurrentUser() user: AccessUser, @Body() dto: AddressInputDto) {
     return this.addressesService.create(user.id, dto);
   }
@@ -83,6 +92,7 @@ export class AddressesController {
   @ApiOkResponse({
     schema: { example: { code: 0, message: 'ok', data: ADDRESS_EXAMPLE } },
   })
+  @ApiBadRequestResponse({ schema: { example: VALIDATION_EXAMPLE } })
   @ApiNotFoundResponse({ schema: { example: NOT_FOUND_EXAMPLE } })
   update(
     @CurrentUser() user: AccessUser,
@@ -99,6 +109,7 @@ export class AddressesController {
   @ApiOkResponse({
     schema: { example: { code: 0, message: 'ok', data: { ok: true } } },
   })
+  @ApiBadRequestResponse({ schema: { example: VALIDATION_EXAMPLE } })
   @ApiNotFoundResponse({ schema: { example: NOT_FOUND_EXAMPLE } })
   remove(
     @CurrentUser() user: AccessUser,

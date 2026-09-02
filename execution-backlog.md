@@ -1151,17 +1151,17 @@ Source of truth: [`build-spec.md`](./build-spec.md). Do not implement features l
 
 **Purpose**
 
-- Time-based cancel (unpaid > `ORDER_PAY_TIMEOUT_SEC`) and complete (paid > `ORDER_COMPLETE_AFTER_SEC`).
+- Time-based cancel, paid → awaiting-receipt, and awaiting-receipt → completed transitions.
 
 **Scope**
 
-- **In:** `OrderJobs.tick(now: Date)` batch processing; reuse order service cancel/complete methods; `@Cron(EVERY_MINUTE)` calls `tick(new Date())`.
+- **In:** `OrderJobs.tick(now: Date)` batch processing; reuse order service conditional transition methods; `@Cron(EVERY_MINUTE)` calls `tick(new Date())`.
 - **Out:** Client UI for job timing.
 
 **Suggested implementation notes**
 
-- Env: default 60s pay timeout, 600s complete.
-- Tests call `tick` with injected clock — **never sleep 10 minutes**.
+- Env: default 60s pay timeout, 180s paid-to-awaiting-receipt, 300s awaiting-receipt-to-complete.
+- Tests call `tick` with injected clock — **never sleep for wall-clock status transitions**.
 - Process batches of 100.
 
 **Acceptance criteria**
@@ -2178,7 +2178,7 @@ Source of truth: [`build-spec.md`](./build-spec.md). Do not implement features l
 
 **Scope**
 
-- **In:** Update README: one-command run, env table, Dev Client steps, dual-token demo notes, 1-min cancel / 10-min complete, telemetry dev flag, link to build-spec and product-brief; ensure Swagger covers all routes; manual checklist from PRD appendix B in README.
+- **In:** Update README: one-command run, env table, Dev Client steps, dual-token demo notes, 1-min cancel / 3-min ship / 5-min complete, telemetry dev flag, link to build-spec and product-brief; ensure Swagger covers all routes; manual checklist from PRD appendix B in README.
 - **Out:** New features.
 
 **Suggested implementation notes**
@@ -2238,7 +2238,7 @@ Apply on every task before marking done:
 - Dual-token: register/login, silent cold start, concurrent 401 single-flight refresh, logout revokes all refresh tokens.
 - Guest cannot cart/checkout; guest add-to-cart / buy-now → login → **automatic retry** (no second tap); search history login-only; invalid cart lines visible but not checkoutable.
 - Order list paginates (`page` / `pageSize`) on API and mobile.
-- Jobs: unpaid order cancels after 60s (env-configurable); paid order completes after 10 minutes via `tick` / cron.
+- Jobs: unpaid order cancels after 60s (env-configurable); paid order moves to awaiting receipt after ~3 minutes and completes after another ~5 minutes via `tick` / cron.
 - Settings analytics opt-out stops PostHog capture/replay.
 
 ### Quality baseline

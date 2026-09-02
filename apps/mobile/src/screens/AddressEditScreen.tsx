@@ -198,34 +198,38 @@ export function AddressEditScreen() {
         contentContainerStyle={styles.form}
         keyboardShouldPersistTaps="handled"
       >
-        <TextInput
-          mode="outlined"
-          label="收货人"
-          value={form.receiverName}
-          maxLength={32}
-          onChangeText={(value) => updateField('receiverName', value)}
-        />
-        <TextInput
-          mode="outlined"
-          label="手机号"
-          value={form.phone}
-          maxLength={11}
-          keyboardType="phone-pad"
-          onChangeText={(value) => updateField('phone', value)}
-        />
-        <RegionPicker
-          value={region}
-          onChange={(value) => setForm((current) => ({ ...current, ...value }))}
-        />
-        <TextInput
-          mode="outlined"
-          label="详细地址"
-          value={form.detail}
-          maxLength={128}
-          multiline
-          numberOfLines={3}
-          onChangeText={(value) => updateField('detail', value)}
-        />
+        <View accessibilityLabel="ph-no-capture" style={styles.sensitive}>
+          <TextInput
+            mode="outlined"
+            label="收货人"
+            value={form.receiverName}
+            maxLength={32}
+            onChangeText={(value) => updateField('receiverName', value)}
+          />
+          <TextInput
+            mode="outlined"
+            label="手机号"
+            value={form.phone}
+            maxLength={11}
+            keyboardType="phone-pad"
+            onChangeText={(value) => updateField('phone', value)}
+          />
+          <RegionPicker
+            value={region}
+            onChange={(value) =>
+              setForm((current) => ({ ...current, ...value }))
+            }
+          />
+          <TextInput
+            mode="outlined"
+            label="详细地址"
+            value={form.detail}
+            maxLength={128}
+            multiline
+            numberOfLines={3}
+            onChangeText={(value) => updateField('detail', value)}
+          />
+        </View>
         <Checkbox.Item
           label="设为默认地址"
           status={form.isDefault ? 'checked' : 'unchecked'}
@@ -259,6 +263,9 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: tokens.space.lg,
+    gap: tokens.space.lg,
+  },
+  sensitive: {
     gap: tokens.space.lg,
   },
   checkbox: {

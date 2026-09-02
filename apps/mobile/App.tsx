@@ -6,11 +6,19 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider, Snackbar } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import {
+  initAnalytics,
+  navigationAnalytics,
+  registerSentryNavigationContainer,
+  syncUserIdentity,
+  trackAppLaunch,
+} from './src/analytics';
 import { hydrateAuth } from './src/auth/hydrate';
 import { setSessionExpiryHandler } from './src/auth/session-expiry';
 import { AddToCartAnimationOverlay } from './src/components';
 import { navigationRef } from './src/navigation/ref';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { useAuthStore } from './src/store/auth';
 import { useToastStore } from './src/store/toast';
 import { theme, tokens } from './src/theme';
 
@@ -32,7 +40,29 @@ export default function App() {
   const dismissToast = useToastStore((s) => s.dismiss);
 
   useEffect(() => {
-    void hydrateAuth();
+    let disposed = false;
+    let unsubscribeAuth: (() => void) | undefined;
+    void (async () => {
+      await initAnalytics();
+      if (disposed) return;
+
+      trackAppLaunch();
+      syncUserIdentity(useAuthStore.getState().user?.id ?? null);
+      unsubscribeAuth = useAuthStore.subscribe((state, previous) => {
+        if (state.user?.id !== previous.user?.id) {
+          syncUserIdentity(state.user?.id ?? null);
+        }
+      });
+      if (navigationRef.isReady()) {
+        registerSentryNavigationContainer(navigationRef);
+        navigationAnalytics.track(navigationRef.getCurrentRoute());
+      }
+      await hydrateAuth();
+    })();
+    return () => {
+      disposed = true;
+      unsubscribeAuth?.();
+    };
   }, []);
 
   useEffect(() => {
@@ -51,7 +81,17 @@ export default function App() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <PaperProvider theme={theme}>
-          <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+          <NavigationContainer
+            ref={navigationRef}
+            theme={navigationTheme}
+            onReady={() => {
+              registerSentryNavigationContainer(navigationRef);
+              navigationAnalytics.track(navigationRef.getCurrentRoute());
+            }}
+            onStateChange={() =>
+              navigationAnalytics.track(navigationRef.getCurrentRoute())
+            }
+          >
             <RootNavigator />
             <StatusBar style="dark" />
           </NavigationContainer>

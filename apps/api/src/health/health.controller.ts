@@ -1,5 +1,10 @@
 import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ErrorCode } from '@lightbuy/shared';
 import { Public } from '../auth/public.decorator';
 import { CLIENT_MESSAGE_BY_CODE } from '../http/client-messages';
@@ -20,6 +25,17 @@ export class HealthController {
         code: 0,
         message: 'ok',
         data: { status: 'ok', db: 'up', uptimeSec: 12 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.SERVICE_UNAVAILABLE,
+    description: '进程存活但数据库不可用',
+    schema: {
+      example: {
+        code: ErrorCode.INTERNAL,
+        message: CLIENT_MESSAGE_BY_CODE[ErrorCode.INTERNAL],
+        data: { status: 'error', db: 'down', uptimeSec: 12 },
       },
     },
   })

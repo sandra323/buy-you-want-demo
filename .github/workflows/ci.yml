@@ -1,5 +1,4 @@
-# Quality gates for PRs.
-# Mobile Jest lands in Task 10.4 — do not add `pnpm --filter mobile test` here yet.
+# Quality gates for pushes and pull requests.
 name: CI
 
 on:
@@ -13,7 +12,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, format, typecheck, API unit + e2e
+    name: Lint, format, typecheck, API + mobile tests
     runs-on: ubuntu-latest
 
     services:
@@ -67,8 +66,11 @@ jobs:
       - name: Typecheck (shared build first)
         run: pnpm typecheck
 
-      - name: Unit tests
-        run: pnpm test
+      - name: API unit tests
+        run: pnpm --filter api test
+
+      - name: Mobile Jest
+        run: pnpm --filter mobile test
 
       - name: API e2e (auth suite included)
         run: pnpm --filter api test:e2e
